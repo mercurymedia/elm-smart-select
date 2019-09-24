@@ -2,6 +2,7 @@ module SmartSelectSingle exposing
     ( SmartSelect, Msg, init, view, subscriptions, update
     , Settings
     , selected
+    , setSelected
     )
 
 {-| A select component for a single selection.
@@ -20,6 +21,11 @@ module SmartSelectSingle exposing
 # Query
 
 @docs selected
+
+
+# Externally Triggered Actions
+
+@docs setSelected
 
 -}
 
@@ -62,7 +68,7 @@ type alias Model msg a =
 
 {-| The type facilitating the configuration of the smart select.
 
-  - The `internalMsg` field takes a function that expects a tuple containing a SmartSelect.Msg as well as the selection state and returns an externally defined msg.
+  - The `internalMsg` field takes a function that expects a SmartSelect.Msg and returns an externally defined msg.
   - `optionType` is a string that indicates what kind of data is being selected, i.e. "Product" or "Client"
   - `optionLabel` expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose"
   - `optionDescription` expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft"
@@ -105,7 +111,7 @@ type Msg a
     | Close
 
 
-{-| Instantiates and returns a smart select.
+{-| Instantiates and returns a smart select. Takes in the select configuration and a list of previously selected elements, if any.
 -}
 init : Settings msg a -> Maybe a -> SmartSelect msg a
 init settings alreadySelected =
@@ -259,6 +265,16 @@ debounceConfig settings =
 selected : SmartSelect msg a -> Maybe a
 selected (SmartSelect model) =
     model.selected
+
+
+{-| It is possible that the select is instantiated on your model before data representing
+a previous selection is loaded. Use this function to update the picked selection in
+the select when the appropriate data is received. Use this method sparingly, if at all.
+The selected state should ideally only change due to user input.
+-}
+setSelected : a -> SmartSelect msg a -> SmartSelect msg a
+setSelected newSelected (SmartSelect model) =
+    SmartSelect { model | selected = Just newSelected }
 
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.

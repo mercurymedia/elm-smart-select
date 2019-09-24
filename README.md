@@ -1,5 +1,5 @@
 # elm-smart-select
-A feature rich select component written in Elm 0.19
+A select component written in Elm 0.19
 
 ## Install
 elm install mercurymedia/elm-datetime-picker
@@ -16,7 +16,7 @@ import SmartSelectSingle as SingleSelect
 import SmartSelect.Utilities exposing (SearchUnion(..))
 ```
 
-2. Add the smart select to the model providing the datatype of the data to be selected and initialize it in the model init
+2. Add the smart select to the model providing the datatype of the data to be selected and initialize it in the model init. The `init` function takes in the select settings (see step 4) and a previously selected element, if any. **_Note:_** The selection state for the `SmartSelectMulti` is a List of selected entities as opposed to a Maybe entity for `SmartSelectSingle`.
 
 ```elm
 type alias Product =
@@ -27,30 +27,30 @@ type alias Product =
 
 type alias Model =
     { ...
-    , singleSelect : SingleSelect.SmartSelect Product
+    , singleSelect : SingleSelect.SmartSelect Msg Product
     }
 
 init : ( Model, Cmd Msg )
 init =
     ( { ...
-      , singleSelect = SingleSelect.init
+      , singleSelect = SingleSelect.init {selectSettings} {previouslySelected}
       }
     )
 ```
 
-3. One message needs to be defined indicating that an update to the smart select has been triggered and needs to be handled. This message expects a tuple containing a `SingleSelect.Msg` and the selection state. **_Note:_** The selection state for the `SmartSelectMulti` is a List of selected entities as opposed to a Maybe entity for `SmartSelectSingle`.
+3. One message needs to be defined indicating that an update to the smart select has been triggered and needs to be handled. This message expects a `SingleSelect.Msg`.
 
 ```elm
 type Msg
     = ...
-    | HandleSelectUpdate ( SingleSelect.Msg Product, Maybe Product )
+    | HandleSelectUpdate (SingleSelect.Msg Product)
 ```
 
 4. Configure the settings for the smart select. The `Settings` type as defined in the `SmartSelectSingle` module is below:
 
 ```elm
 type alias Settings msg a =
-    { internalMsg : ( Msg a, Maybe a ) -> msg
+    { internalMsg : Msg a -> msg
     , optionType : String
     , optionLabel : a -> String
     , optionDescription : a -> String
@@ -61,7 +61,7 @@ type alias Settings msg a =
     }
 ```
 
-- The `internalMsg` field takes a function that expects a tuple containing a SmartSelect.Msg and the selection state and returns the msg we defined in step 2.
+- The `internalMsg` field takes a function that expects a SmartSelect.Msg and returns the msg we defined in step 2.
 - `optionType` is a string that indicates what kind of data is being selected, i.e. "Product" or "Client"
 - `optionLabel` expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose"
 - `optionDescription` expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft"
@@ -93,11 +93,9 @@ type alias ApiSearchAttrs a =
 
 `SingleSelect.view` expects the following (in order):
 - a boolean indicating if the select is disabled or not
-- the currently selected entity itself
-- the configured settings
 - the smart select instance
 
-6. Updating the select. Here is where we handle the `Msg` we defined in step 3. As indicated before, the message carries with it a tuple containing the `SingleSelect.Msg` for updating the select component as well as the current selection state. 
+6. Updating the select. Here is where we handle the `Msg` we defined in step 3. As indicated before, the message carries with it a `SingleSelect.Msg` for updating the select component. 
 
 ```elm
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -105,30 +103,24 @@ update msg model =
     case msg of
         ...
 
-        HandleSelectUpdate ( sMsg, selectedProduct ) ->
+        HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SmartSelect.update sMsg (singleSelectSettings model.selectableProducts) selectedProduct model.singleSelect
+                    SmartSelect.update sMsg model.singleSelect
             in
-            ( { model | singleSelect = updatedSelect, selectedProduct = selectedProduct }, selectCmd )
+            ( { model | singleSelect = updatedSelect }, selectCmd )
 ```
 
-There are two things happening here:
-- We always update the selection state in the model based on the selection sent through the tuple. This does not necessarily mean a new selection has occurred.
-- We update the smart select instance with the select `msg` received in the tuple. The `update` function takes the following arguments (in order):
-    - the select msg
-    - the select settings
-    - the *new* selection. **_This is important_**. Always call the update with the selection state received from the tuple.
-    - the select instance to update
-
 `SingleSelect.upate` returns an updated smart select instance and a cmd.
+
+You might be wondering were the selected state is. The smart select stores the select state and exposes a `selected` method to retrieve it. Call this method when you need the selected entity/entities.
 
 7. The select module uses a subscription to determine when to close (outside of a selection). Wire the picker subscription like below.
 
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    SingleSelect.subscriptions (selectSettings model.selectableProducts) model.selectedProduct model.singleSelect
+    SingleSelect.subscriptions model.singleSelect
 ```
 
 ## Examples
