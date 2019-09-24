@@ -1,10 +1,9 @@
-module SinglSelect.Main exposing (main)
+module SingleSelect.Main exposing (main)
 
 import Browser
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
 import SmartSelect.Utilities exposing (SearchUnion(..))
-import SmartSelectMulti as MultiSelect
 import SmartSelectSingle as SingleSelect
 
 
@@ -16,17 +15,15 @@ type alias Product =
 
 
 type alias Model =
-    { selectableProducts : List Product
-    , selectedProduct : Maybe Product
-    , selectedProducts : List Product
-    , singleSelect : SingleSelect.SmartSelect Product
-    , multiSelect : MultiSelect.SmartSelect Product
+    { singleSelect : SingleSelect.SmartSelect Msg Product
+
+    -- other fields...
     }
 
 
 singleSelectSettings : List Product -> SingleSelect.Settings Msg Product
 singleSelectSettings products =
-    { internalMsg = \( msg, product ) -> HandleSingleSelectUpdate ( msg, product )
+    { internalMsg = \msg -> HandleSingleSelectUpdate msg
     , searchFn =
         Local
             (\searchText ->
@@ -46,18 +43,18 @@ singleSelectSettings products =
 
 
 type Msg
-    = HandleSingleSelectUpdate ( SingleSelect.Msg Product, Maybe Product )
+    = HandleSingleSelectUpdate (SingleSelect.Msg Product)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        HandleSingleSelectUpdate ( sMsg, selectedProduct ) ->
+        HandleSingleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelect.update sMsg (singleSelectSettings model.selectableProducts) selectedProduct model.singleSelect
+                    SingleSelect.update sMsg model.singleSelect
             in
-            ( { model | singleSelect = updatedSelect, selectedProduct = selectedProduct }, selectCmd )
+            ( { model | singleSelect = updatedSelect }, selectCmd )
 
 
 view : Model -> Html Msg
@@ -66,7 +63,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a single SmartSelect" ]
         , div
             [ style "width" "500px" ]
-            [ SingleSelect.view False model.selectedProduct (singleSelectSettings model.selectableProducts) model.singleSelect ]
+            [ SingleSelect.view False model.singleSelect ]
         ]
 
 
@@ -89,12 +86,7 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { selectableProducts = exampleProducts
-      , selectedProduct = Nothing
-      , selectedProducts = []
-      , singleSelect = SingleSelect.init
-      , multiSelect = MultiSelect.init
-      }
+    ( { singleSelect = SingleSelect.init (singleSelectSettings exampleProducts) Nothing }
     , Cmd.none
     )
 
@@ -102,7 +94,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ SingleSelect.subscriptions (singleSelectSettings model.selectableProducts) model.selectedProduct model.singleSelect ]
+        [ SingleSelect.subscriptions model.singleSelect ]
 
 
 main : Program () Model Msg

@@ -5,7 +5,6 @@ import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
 import SmartSelect.Utilities exposing (SearchUnion(..))
 import SmartSelectMulti as MultiSelect
-import SmartSelectSingle as SingleSelect
 
 
 type alias Product =
@@ -16,17 +15,15 @@ type alias Product =
 
 
 type alias Model =
-    { selectableProducts : List Product
-    , selectedProduct : Maybe Product
-    , selectedProducts : List Product
-    , singleSelect : SingleSelect.SmartSelect Product
-    , multiSelect : MultiSelect.SmartSelect Product
+    { multiSelect : MultiSelect.SmartSelect Msg Product
+
+    -- other fields...
     }
 
 
 multiSelectSettings : List Product -> MultiSelect.Settings Msg Product
 multiSelectSettings products =
-    { internalMsg = \( msg, selectedProducts ) -> HandleMultiSelectUpdate ( msg, selectedProducts )
+    { internalMsg = \msg -> HandleMultiSelectUpdate msg
     , searchFn =
         Local
             (\searchText ->
@@ -46,18 +43,18 @@ multiSelectSettings products =
 
 
 type Msg
-    = HandleMultiSelectUpdate ( MultiSelect.Msg Product, List Product )
+    = HandleMultiSelectUpdate (MultiSelect.Msg Product)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        HandleMultiSelectUpdate ( sMsg, selectedProducts ) ->
+        HandleMultiSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelect.update sMsg (multiSelectSettings model.selectableProducts) selectedProducts model.multiSelect
+                    MultiSelect.update sMsg model.multiSelect
             in
-            ( { model | multiSelect = updatedSelect, selectedProducts = selectedProducts }, selectCmd )
+            ( { model | multiSelect = updatedSelect }, selectCmd )
 
 
 viewSelectedProduct : Product -> Html Msg
@@ -72,7 +69,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi SmartSelect" ]
         , div
             [ style "width" "500px", style "display" "inline-flex" ]
-            [ MultiSelect.view False model.selectedProducts viewSelectedProduct (multiSelectSettings model.selectableProducts) model.multiSelect ]
+            [ MultiSelect.view False viewSelectedProduct model.multiSelect ]
         ]
 
 
@@ -95,12 +92,7 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { selectableProducts = exampleProducts
-      , selectedProduct = Nothing
-      , selectedProducts = []
-      , singleSelect = SingleSelect.init
-      , multiSelect = MultiSelect.init
-      }
+    ( { multiSelect = MultiSelect.init (multiSelectSettings exampleProducts) [] }
     , Cmd.none
     )
 
@@ -108,7 +100,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ MultiSelect.subscriptions (multiSelectSettings model.selectableProducts) model.selectedProducts model.multiSelect
+        [ MultiSelect.subscriptions model.multiSelect
         ]
 
 

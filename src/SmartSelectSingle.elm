@@ -1,6 +1,7 @@
 module SmartSelectSingle exposing
     ( SmartSelect, Msg, init, view, subscriptions, update
     , Settings
+    , selected
     )
 
 {-| A select component for a single selection.
@@ -14,6 +15,11 @@ module SmartSelectSingle exposing
 # Settings and Configuration
 
 @docs Settings
+
+
+# Query
+
+@docs selected
 
 -}
 
@@ -36,16 +42,18 @@ import Task
 
 {-| The opaque type representing a particular smart select instance.
 -}
-type SmartSelect a
-    = SmartSelect (Model a)
+type SmartSelect msg a
+    = SmartSelect (Model msg a)
 
 
-type alias Model a =
-    { selectWidth : Float
+type alias Model msg a =
+    { settings : Settings msg a
+    , selectWidth : Float
     , isOpen : Bool
     , searchText : String
     , debounce : Debounce String
     , spinner : Spinner.Model
+    , selected : Maybe a
     , localResults : List a
     , remoteResults : RemoteData ( String, String ) (List a)
     , focusedIndex : Int
@@ -66,7 +74,7 @@ type alias Model a =
 
 -}
 type alias Settings msg a =
-    { internalMsg : ( Msg a, Maybe a ) -> msg
+    { internalMsg : Msg a -> msg
     , optionType : String
     , optionLabel : a -> String
     , optionDescription : a -> String
@@ -82,7 +90,7 @@ type alias Settings msg a =
 type Msg a
     = NoOp
     | SetFocused Int
-    | HandleSelection Int
+    | HandleSelection ( Int, a )
     | UpKeyPressed Int
     | DownKeyPressed Int
     | SetSearchText String
@@ -99,14 +107,16 @@ type Msg a
 
 {-| Instantiates and returns a smart select.
 -}
-init : SmartSelect a
-init =
+init : Settings msg a -> Maybe a -> SmartSelect msg a
+init settings alreadySelected =
     SmartSelect
-        { selectWidth = 0
+        { settings = settings
+        , selectWidth = 0
         , isOpen = False
         , searchText = ""
         , debounce = Debounce.init
         , spinner = Spinner.init
+        , selected = alreadySelected
         , localResults = []
         , remoteResults = NotAsked
         , focusedIndex = 0
@@ -120,52 +130,52 @@ smartSelectId =
 
 {-| Events external to the smart select to which it is subscribed.
 -}
-subscriptions : Settings msg a -> Maybe a -> SmartSelect a -> Sub msg
-subscriptions settings selected (SmartSelect model) =
+subscriptions : SmartSelect msg a -> Sub msg
+subscriptions (SmartSelect model) =
     if model.isOpen then
         Sub.batch
-            [ Browser.Events.onResize (\h w -> settings.internalMsg ( WindowResized ( h, w ), selected ))
-            , case settings.searchFn of
+            [ Browser.Events.onResize (\h w -> model.settings.internalMsg <| WindowResized ( h, w ))
+            , case model.settings.searchFn of
                 API _ ->
                     case model.remoteResults of
                         NotAsked ->
-                            if settings.characterSearchThreshold == 0 then
-                                Sub.map (\sMsg -> settings.internalMsg ( SpinnerMsg sMsg, selected )) Spinner.subscription
+                            if model.settings.characterSearchThreshold == 0 then
+                                Sub.map (\sMsg -> model.settings.internalMsg <| SpinnerMsg sMsg) Spinner.subscription
 
                             else
                                 Sub.none
 
                         Loading ->
-                            Sub.map (\sMsg -> settings.internalMsg ( SpinnerMsg sMsg, selected )) Spinner.subscription
+                            Sub.map (\sMsg -> model.settings.internalMsg <| SpinnerMsg sMsg) Spinner.subscription
 
                         _ ->
                             Sub.none
 
                 Local _ ->
                     Sub.none
-            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId settings selected)
+            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId model.settings)
             ]
 
     else
         Sub.none
 
 
-clickedOutsideSelect : String -> Settings msg a -> Maybe a -> Decode.Decoder msg
-clickedOutsideSelect componentId settings selected =
+clickedOutsideSelect : String -> Settings msg a -> Decode.Decoder msg
+clickedOutsideSelect componentId settings =
     Decode.field "target" (Utilities.eventIsOutsideComponent componentId)
         |> Decode.andThen
             (\isOutside ->
                 if isOutside then
-                    Decode.succeed <| settings.internalMsg ( Close, selected )
+                    Decode.succeed <| settings.internalMsg Close
 
                 else
                     Decode.fail "inside component"
             )
 
 
-localOrRemoteResults : Settings msg a -> SmartSelect a -> List a
-localOrRemoteResults settings (SmartSelect model) =
-    case settings.searchFn of
+localOrRemoteResults : SmartSelect msg a -> List a
+localOrRemoteResults (SmartSelect model) =
+    case model.settings.searchFn of
         API _ ->
             case model.remoteResults of
                 Success results ->
@@ -179,19 +189,19 @@ localOrRemoteResults settings (SmartSelect model) =
 
 
 selectableEntitiesWithoutSelected : List a -> Maybe a -> List a
-selectableEntitiesWithoutSelected selectable selected =
-    Maybe.map (\s -> List.filter (\el -> el /= s) selectable) selected
+selectableEntitiesWithoutSelected selectable selectedEntity =
+    Maybe.map (\s -> List.filter (\el -> el /= s) selectable) selectedEntity
         |> Maybe.withDefault selectable
 
 
-keyActionMapper : Maybe a -> Settings msg a -> SmartSelect a -> Decode.Decoder ( msg, Bool )
-keyActionMapper selected settings (SmartSelect model) =
+keyActionMapper : SmartSelect msg a -> Decode.Decoder ( msg, Bool )
+keyActionMapper (SmartSelect model) =
     let
         options =
-            localOrRemoteResults settings (SmartSelect model)
+            localOrRemoteResults (SmartSelect model)
 
         selectableEntities =
-            selectableEntitiesWithoutSelected options selected
+            selectableEntitiesWithoutSelected options model.selected
                 |> List.indexedMap Tuple.pair
     in
     Decode.field "key" Decode.string
@@ -208,7 +218,7 @@ keyActionMapper selected settings (SmartSelect model) =
                                 else
                                     model.focusedIndex - 1
                         in
-                        ( settings.internalMsg ( UpKeyPressed newIdx, selected ), Utilities.preventDefault key )
+                        ( model.settings.internalMsg <| UpKeyPressed newIdx, Utilities.preventDefault key )
 
                     Down ->
                         let
@@ -219,35 +229,42 @@ keyActionMapper selected settings (SmartSelect model) =
                                 else
                                     model.focusedIndex + 1
                         in
-                        ( settings.internalMsg ( DownKeyPressed newIdx, selected ), Utilities.preventDefault key )
+                        ( model.settings.internalMsg <| DownKeyPressed newIdx, Utilities.preventDefault key )
 
                     Enter ->
                         case Dict.get model.focusedIndex (Dict.fromList selectableEntities) of
                             Just item ->
-                                ( settings.internalMsg ( HandleSelection <| Utilities.newFocusedIndexAfterSelection model.focusedIndex, Just item ), Utilities.preventDefault key )
+                                ( model.settings.internalMsg <| HandleSelection <| ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, item ), Utilities.preventDefault key )
 
                             Nothing ->
-                                ( settings.internalMsg ( NoOp, selected ), Utilities.preventDefault key )
+                                ( model.settings.internalMsg NoOp, Utilities.preventDefault key )
 
                     Escape ->
-                        ( settings.internalMsg ( Close, selected ), Utilities.preventDefault key )
+                        ( model.settings.internalMsg Close, Utilities.preventDefault key )
 
                     Other ->
-                        ( settings.internalMsg ( NoOp, selected ), Utilities.preventDefault key )
+                        ( model.settings.internalMsg NoOp, Utilities.preventDefault key )
             )
 
 
-debounceConfig : Settings msg a -> Maybe a -> Debounce.Config msg
-debounceConfig settings selected =
+debounceConfig : Settings msg a -> Debounce.Config msg
+debounceConfig settings =
     { strategy = Debounce.later settings.debounceDuration
-    , transform = \debounceMsg -> settings.internalMsg ( DebounceMsg debounceMsg, selected )
+    , transform = \debounceMsg -> settings.internalMsg <| DebounceMsg debounceMsg
     }
+
+
+{-| Get the currently selected entity if any.
+-}
+selected : SmartSelect msg a -> Maybe a
+selected (SmartSelect model) =
+    model.selected
 
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
 -}
-update : Msg a -> Settings msg a -> Maybe a -> SmartSelect a -> ( SmartSelect a, Cmd msg )
-update msg settings selected (SmartSelect model) =
+update : Msg a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+update msg (SmartSelect model) =
     case msg of
         NoOp ->
             ( SmartSelect model, Cmd.none )
@@ -255,12 +272,12 @@ update msg settings selected (SmartSelect model) =
         SetFocused idx ->
             ( SmartSelect { model | focusedIndex = idx }, Cmd.none )
 
-        HandleSelection idx ->
-            if settings.closeOnSelect then
-                ( SmartSelect { model | isOpen = False, searchText = "", localResults = [], remoteResults = NotAsked }, Cmd.none )
+        HandleSelection ( idx, newSelected ) ->
+            if model.settings.closeOnSelect then
+                ( SmartSelect { model | isOpen = False, searchText = "", selected = Just newSelected, localResults = [], remoteResults = NotAsked }, Cmd.none )
 
             else
-                ( SmartSelect { model | focusedIndex = idx }, focusInput settings selected )
+                ( SmartSelect { model | focusedIndex = idx, selected = Just newSelected }, focusInput model.settings )
 
         UpKeyPressed idx ->
             ( SmartSelect { model | focusedIndex = idx }, Cmd.none )
@@ -269,13 +286,13 @@ update msg settings selected (SmartSelect model) =
             ( SmartSelect { model | focusedIndex = idx }, Cmd.none )
 
         SetSearchText text ->
-            if String.length text < settings.characterSearchThreshold then
+            if String.length text < model.settings.characterSearchThreshold then
                 ( SmartSelect { model | searchText = text, remoteResults = NotAsked }, Cmd.none )
 
             else
                 let
                     ( debounce, cmd ) =
-                        Debounce.push (debounceConfig settings selected) text model.debounce
+                        Debounce.push (debounceConfig model.settings) text model.debounce
                 in
                 ( SmartSelect { model | searchText = text, debounce = debounce }
                 , cmd
@@ -285,12 +302,12 @@ update msg settings selected (SmartSelect model) =
             let
                 ( debounce, cmd ) =
                     Debounce.update
-                        (debounceConfig settings selected)
-                        (Debounce.takeLast (search settings selected))
+                        (debounceConfig model.settings)
+                        (Debounce.takeLast (search model.settings))
                         msg_
                         model.debounce
             in
-            case settings.searchFn of
+            case model.settings.searchFn of
                 API _ ->
                     ( SmartSelect { model | debounce = debounce, remoteResults = Loading }, cmd )
 
@@ -307,13 +324,13 @@ update msg settings selected (SmartSelect model) =
             )
 
         GotLocalSearchResults results ->
-            ( SmartSelect { model | localResults = results, focusedIndex = 0 }, focusInput settings selected )
+            ( SmartSelect { model | localResults = results, focusedIndex = 0 }, focusInput model.settings )
 
         GotApiSearchResults result ->
             ( SmartSelect { model | focusedIndex = 0, remoteResults = RemoteData.mapError (Errors.httpErrorToReqErrTuple "GET") result }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getSelectWidth settings selected )
+            ( SmartSelect model, getSelectWidth model.settings )
 
         MaybeGotSelect result ->
             case result of
@@ -322,7 +339,7 @@ update msg settings selected (SmartSelect model) =
                         selectWidth =
                             component.element |> (\el -> el.width)
                     in
-                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput settings selected )
+                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.settings )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
@@ -338,11 +355,11 @@ update msg settings selected (SmartSelect model) =
         Open ->
             let
                 cmd =
-                    if settings.characterSearchThreshold == 0 then
-                        Cmd.batch [ search settings selected "", getSelectWidth settings selected ]
+                    if model.settings.characterSearchThreshold == 0 then
+                        Cmd.batch [ search model.settings "", getSelectWidth model.settings ]
 
                     else
-                        Cmd.batch [ getSelectWidth settings selected, focusInput settings selected ]
+                        Cmd.batch [ getSelectWidth model.settings, focusInput model.settings ]
             in
             ( SmartSelect { model | isOpen = True, focusedIndex = 0 }, cmd )
 
@@ -350,11 +367,11 @@ update msg settings selected (SmartSelect model) =
             ( SmartSelect { model | isOpen = False, searchText = "", localResults = [], remoteResults = NotAsked }, Cmd.none )
 
 
-search : Settings msg a -> Maybe a -> String -> Cmd msg
-search { searchFn, internalMsg } selected searchText =
+search : Settings msg a -> String -> Cmd msg
+search { searchFn, internalMsg } searchText =
     case searchFn of
         Local localSearch ->
-            Task.perform (\results -> internalMsg ( GotLocalSearchResults results, selected )) (Task.succeed (localSearch searchText))
+            Task.perform (\results -> internalMsg <| GotLocalSearchResults results) (Task.succeed (localSearch searchText))
 
         API ( _, attrs ) ->
             Http.request
@@ -362,20 +379,20 @@ search { searchFn, internalMsg } selected searchText =
                 , headers = attrs.headers
                 , url = attrs.url searchText
                 , body = Http.emptyBody
-                , expect = Http.expectJson (\results -> RemoteData.fromResult results |> (\remoteData -> internalMsg ( GotApiSearchResults remoteData, selected ))) (Utilities.decodeOptions attrs.optionDecoder)
+                , expect = Http.expectJson (\results -> RemoteData.fromResult results |> (\remoteData -> internalMsg <| GotApiSearchResults remoteData)) (Utilities.decodeOptions attrs.optionDecoder)
                 , timeout = Nothing
                 , tracker = Nothing
                 }
 
 
-focusInput : Settings msg a -> Maybe a -> Cmd msg
-focusInput settings selected =
-    Task.attempt (\_ -> settings.internalMsg ( NoOp, selected )) (Dom.focus "smart-select-input")
+focusInput : Settings msg a -> Cmd msg
+focusInput settings =
+    Task.attempt (\_ -> settings.internalMsg NoOp) (Dom.focus "smart-select-input")
 
 
-getSelectWidth : Settings msg a -> Maybe a -> Cmd msg
-getSelectWidth settings selected =
-    Task.attempt (\select -> settings.internalMsg ( MaybeGotSelect select, selected )) (Dom.getElement "smart-select-component")
+getSelectWidth : Settings msg a -> Cmd msg
+getSelectWidth settings =
+    Task.attempt (\select -> settings.internalMsg <| MaybeGotSelect select) (Dom.getElement "smart-select-component")
 
 
 classPrefix : String
@@ -383,9 +400,9 @@ classPrefix =
     "elm-smart-select--"
 
 
-showSpinner : Settings msg a -> Model a -> Html msg
-showSpinner settings model =
-    case settings.searchFn of
+showSpinner : Model msg a -> Html msg
+showSpinner model =
+    case model.settings.searchFn of
         API ( spinnerColor, _ ) ->
             div [ class (classPrefix ++ "loading-spinner-container") ] [ div [ class (classPrefix ++ "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig spinnerColor) model.spinner ] ]
 
@@ -393,11 +410,11 @@ showSpinner settings model =
             text ""
 
 
-showOptions : Maybe a -> Model a -> Settings msg a -> List a -> Html msg
-showOptions selected model settings options =
+showOptions : Model msg a -> List a -> Html msg
+showOptions model options =
     let
         selectableEntities =
-            selectableEntitiesWithoutSelected options selected |> List.indexedMap Tuple.pair
+            selectableEntitiesWithoutSelected options model.selected |> List.indexedMap Tuple.pair
     in
     if List.isEmpty selectableEntities then
         div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No results found for: " ++ model.searchText) ]
@@ -407,12 +424,12 @@ showOptions selected model settings options =
             (List.map
                 (\( idx, option ) ->
                     div
-                        [ Events.stopPropagationOn "click" (Decode.succeed ( settings.internalMsg ( HandleSelection <| Utilities.newFocusedIndexAfterSelection model.focusedIndex, Just option ), True ))
-                        , onMouseEnter <| settings.internalMsg ( SetFocused idx, selected )
+                        [ Events.stopPropagationOn "click" (Decode.succeed ( model.settings.internalMsg <| HandleSelection ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, option ), True ))
+                        , onMouseEnter <| model.settings.internalMsg <| SetFocused idx
                         , classList
                             [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == model.focusedIndex ) ]
                         ]
-                        [ div [] [ text (settings.optionLabel option) ]
+                        [ div [] [ text (model.settings.optionLabel option) ]
                         , div
                             [ classList
                                 [ ( classPrefix ++ "select-option-description", True )
@@ -420,44 +437,44 @@ showOptions selected model settings options =
                                 , ( classPrefix ++ "select-option-description-focused", idx == model.focusedIndex )
                                 ]
                             ]
-                            [ text (settings.optionDescription option) ]
+                            [ text (model.settings.optionDescription option) ]
                         ]
                 )
                 selectableEntities
             )
 
 
-viewResults : Maybe a -> SmartSelect a -> Settings msg a -> Html msg
-viewResults selected (SmartSelect model) settings =
-    case settings.searchFn of
+viewResults : SmartSelect msg a -> Html msg
+viewResults (SmartSelect model) =
+    case model.settings.searchFn of
         API _ ->
             case model.remoteResults of
                 NotAsked ->
-                    if settings.characterSearchThreshold == 0 then
-                        showSpinner settings model
+                    if model.settings.characterSearchThreshold == 0 then
+                        showSpinner model
 
                     else
                         let
                             difference =
-                                settings.characterSearchThreshold - String.length model.searchText
+                                model.settings.characterSearchThreshold - String.length model.searchText
 
                             searchPrompt =
-                                if settings.characterSearchThreshold > 0 && difference == 0 then
-                                    showSpinner settings model
+                                if model.settings.characterSearchThreshold > 0 && difference == 0 then
+                                    showSpinner model
 
                                 else if difference > 1 then
-                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower settings.optionType ]
+                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower model.settings.optionType ]
 
                                 else
-                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower settings.optionType ]
+                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower model.settings.optionType ]
                         in
                         div [ class (classPrefix ++ "search-prompt-container") ] [ searchPrompt ]
 
                 Loading ->
-                    showSpinner settings model
+                    showSpinner model
 
                 Success results ->
-                    showOptions selected model settings results
+                    showOptions model results
 
                 Failure ( requestDecorator, errMsg ) ->
                     div [ class (classPrefix ++ "error-box-container") ]
@@ -468,7 +485,7 @@ viewResults selected (SmartSelect model) settings =
                                 ]
                             , span
                                 [ class (classPrefix ++ "dismiss-error-x")
-                                , onClick <| settings.internalMsg ( DismissError, selected )
+                                , onClick <| model.settings.internalMsg DismissError
                                 ]
                                 [ Icons.x
                                     |> Icons.withSize 12
@@ -479,22 +496,20 @@ viewResults selected (SmartSelect model) settings =
                         ]
 
         Local _ ->
-            showOptions selected model settings model.localResults
+            showOptions model model.localResults
 
 
 {-| The smart select view for selecting one option at a time. It expects the following arguments (in order):
 
   - a boolean indicating if the select is disabled or not
-  - the currently selected entity itself
-  - the configured settings
   - the smart select instance
 
 -}
-view : Bool -> Maybe a -> Settings msg a -> SmartSelect a -> Html msg
-view isDisabled selectedEntity settings (SmartSelect model) =
+view : Bool -> SmartSelect msg a -> Html msg
+view isDisabled (SmartSelect model) =
     let
         selectedLabel =
-            Maybe.map (\selected -> settings.optionLabel selected) selectedEntity |> Maybe.withDefault settings.optionType
+            Maybe.map (\s -> model.settings.optionLabel s) model.selected |> Maybe.withDefault model.settings.optionType
     in
     if isDisabled then
         div
@@ -513,8 +528,8 @@ view isDisabled selectedEntity settings (SmartSelect model) =
                 , ( classPrefix ++ "enabled-closed", not model.isOpen )
                 , ( classPrefix ++ "enabled-opened", model.isOpen )
                 ]
-            , onClick <| settings.internalMsg ( Open, selectedEntity )
-            , Events.preventDefaultOn "keydown" (keyActionMapper selectedEntity settings (SmartSelect model))
+            , onClick <| model.settings.internalMsg Open
+            , Events.preventDefaultOn "keydown" (keyActionMapper (SmartSelect model))
             ]
             [ div [ class (classPrefix ++ "label-and-selector-container") ]
                 [ div [ class (classPrefix ++ "label") ] [ text selectedLabel ]
@@ -530,8 +545,8 @@ view isDisabled selectedEntity settings (SmartSelect model) =
                         ]
                         [ div
                             [ class (classPrefix ++ "single-selector-input-container") ]
-                            [ input [ id "smart-select-input", class (classPrefix ++ "single-selector-input"), autocomplete False, onInput <| \val -> settings.internalMsg ( SetSearchText val, selectedEntity ) ] [] ]
-                        , viewResults selectedEntity (SmartSelect model) settings
+                            [ input [ id "smart-select-input", class (classPrefix ++ "single-selector-input"), autocomplete False, onInput <| \val -> model.settings.internalMsg <| SetSearchText val ] [] ]
+                        , viewResults (SmartSelect model)
                         ]
 
                   else
