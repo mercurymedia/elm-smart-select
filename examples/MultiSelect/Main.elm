@@ -1,4 +1,4 @@
-module SmartSelectExample.Main exposing (main)
+module MultiSelect.Main exposing (main)
 
 import Browser
 import Html exposing (Html, div, text)
@@ -24,26 +24,6 @@ type alias Model =
     }
 
 
-singleSelectSettings : List Product -> SingleSelect.Settings Msg Product
-singleSelectSettings products =
-    { internalMsg = \( msg, product ) -> HandleSingleSelectUpdate ( msg, product )
-    , searchFn =
-        Local
-            (\searchText ->
-                if searchText == "" then
-                    products
-
-                else
-                    List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
-            )
-    , optionLabel = \product -> product.name
-    , optionDescription = \product -> product.price
-    , debounceDuration = 0
-    , characterSearchThreshold = 0
-    , closeOnSelect = True
-    }
-
-
 multiSelectSettings : List Product -> MultiSelect.Settings Msg Product
 multiSelectSettings products =
     { internalMsg = \( msg, selectedProducts ) -> HandleMultiSelectUpdate ( msg, selectedProducts )
@@ -56,6 +36,7 @@ multiSelectSettings products =
                 else
                     List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
             )
+    , optionType = "Product"
     , optionLabel = \product -> product.name
     , optionDescription = \product -> product.price
     , debounceDuration = 0
@@ -65,20 +46,12 @@ multiSelectSettings products =
 
 
 type Msg
-    = HandleSingleSelectUpdate ( SingleSelect.Msg Product, Maybe Product )
-    | HandleMultiSelectUpdate ( MultiSelect.Msg Product, List Product )
+    = HandleMultiSelectUpdate ( MultiSelect.Msg Product, List Product )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        HandleSingleSelectUpdate ( sMsg, selectedProduct ) ->
-            let
-                ( updatedSelect, selectCmd ) =
-                    SingleSelect.update sMsg (singleSelectSettings model.selectableProducts) selectedProduct model.singleSelect
-            in
-            ( { model | singleSelect = updatedSelect, selectedProduct = selectedProduct }, selectCmd )
-
         HandleMultiSelectUpdate ( sMsg, selectedProducts ) ->
             let
                 ( updatedSelect, selectCmd ) =
@@ -96,14 +69,10 @@ viewSelectedProduct product =
 view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ div [ style "padding-bottom" "1rem" ] [ text "This is a single SmartSelect" ]
-        , div
-            [ style "width" "500px", style "padding-bottom" "2rem" ]
-            [ SingleSelect.view False "Product" (Maybe.map .name model.selectedProduct |> Maybe.withDefault "Select a Product") model.selectedProduct (singleSelectSettings model.selectableProducts) model.singleSelect ]
-        , div [ style "padding-bottom" "1rem" ] [ text "This is a multi SmartSelect" ]
+        [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi SmartSelect" ]
         , div
             [ style "width" "500px", style "display" "inline-flex" ]
-            [ MultiSelect.view False "Product" model.selectedProducts viewSelectedProduct (multiSelectSettings model.selectableProducts) model.multiSelect ]
+            [ MultiSelect.view False model.selectedProducts viewSelectedProduct (multiSelectSettings model.selectableProducts) model.multiSelect ]
         ]
 
 
@@ -139,8 +108,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ SingleSelect.subscriptions (singleSelectSettings model.selectableProducts) model.selectedProduct model.singleSelect
-        , MultiSelect.subscriptions (multiSelectSettings model.selectableProducts) model.selectedProducts model.multiSelect
+        [ MultiSelect.subscriptions (multiSelectSettings model.selectableProducts) model.selectedProducts model.multiSelect
         ]
 
 

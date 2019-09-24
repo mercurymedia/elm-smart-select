@@ -51,6 +51,7 @@ type Msg
 ```elm
 type alias Settings msg a =
     { internalMsg : ( Msg a, Maybe a ) -> msg
+    , optionType : String
     , optionLabel : a -> String
     , optionDescription : a -> String
     , searchFn : SearchUnion a
@@ -61,7 +62,10 @@ type alias Settings msg a =
 ```
 
 - The `internalMsg` field takes a function that expects a tuple containing a SmartSelect.Msg and the selection state and returns the msg we defined in step 2.
-- `optionLabel` and `optionDescription` are functions that expect an instance of the data being selected from and return strings. Because the smart select is unaware of the type and structure of the data it is processing, these functions are necessary to help render the options in the select dropdown.
+- `optionType` is a string that indicates what kind of data is being selected, i.e. "Product" or "Client"
+- `optionLabel` expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose"
+- `optionDescription` expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft"
+    - Because the smart select is unaware of the type and structure of the data it is processing, these functions are necessary to help render the options in the select dropdown.
 - `debounceDuration` indicates how long if at all to wait between the last keypress and executing a search. This is particularly useful if the search being executed is pinging an external source.
 - `characterThreshold` indicates how many if any characters should be typed before a search is executed.
 - `closeOnSelect` indicates whether or not the `SmartSelect` should close itself after a selection has been made.
@@ -89,8 +93,6 @@ type alias ApiSearchAttrs a =
 
 `SingleSelect.view` expects the following (in order):
 - a boolean indicating if the select is disabled or not
-- a string indicating the name of the data being selected i.e. "Product"
-- a string indicating the currently selected entity if any i.e "Vase"
 - the currently selected entity itself
 - the configured settings
 - the smart select instance

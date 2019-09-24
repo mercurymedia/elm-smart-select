@@ -55,7 +55,10 @@ type alias Model a =
 {-| The type facilitating the configuration of the smart select.
 
   - The `internalMsg` field takes a function that expects a tuple containing a SmartSelect.Msg as well as the selection state and returns an externally defined msg.
-  - `optionLabel` and `optionDescription` are functions that expect an instance of the data being selected from and return strings. Because the smart select is unaware of the type and structure of the data it is processing, these functions are necessary to help render the options in the select dropdown.
+  - `optionType` is a string that indicates what kind of data is being selected, i.e. "Product" or "Client"
+  - `optionLabel` expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose"
+  - `optionDescription` expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft"
+      - Because the smart select is unaware of the type and structure of the data it is processing, these functions are necessary to help render the options in the select dropdown.
   - The `searchFn` field expects a `SearchUnion`.
   - `debounceDuration` indicates how long if at all to wait between the last keypress and executing a search. This is particularly useful if the search being executed is pinging an external source.
   - `characterThreshold` indicates how many if any characters should be typed before a search is executed.
@@ -64,6 +67,7 @@ type alias Model a =
 -}
 type alias Settings msg a =
     { internalMsg : ( Msg a, Maybe a ) -> msg
+    , optionType : String
     , optionLabel : a -> String
     , optionDescription : a -> String
     , searchFn : SearchUnion a
@@ -423,8 +427,8 @@ showOptions selected model settings options =
             )
 
 
-viewResults : Maybe a -> SmartSelect a -> Settings msg a -> String -> Html msg
-viewResults selected (SmartSelect model) settings baseLabel =
+viewResults : Maybe a -> SmartSelect a -> Settings msg a -> Html msg
+viewResults selected (SmartSelect model) settings =
     case settings.searchFn of
         API _ ->
             case model.remoteResults of
@@ -442,10 +446,10 @@ viewResults selected (SmartSelect model) settings baseLabel =
                                     showSpinner settings model
 
                                 else if difference > 1 then
-                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower baseLabel ]
+                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower settings.optionType ]
 
                                 else
-                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower baseLabel ]
+                                    div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower settings.optionType ]
                         in
                         div [ class (classPrefix ++ "search-prompt-container") ] [ searchPrompt ]
 
@@ -481,22 +485,24 @@ viewResults selected (SmartSelect model) settings baseLabel =
 {-| The smart select view for selecting one option at a time. It expects the following arguments (in order):
 
   - a boolean indicating if the select is disabled or not
-  - a string indicating the name of the data being selected i.e. "Product"
-  - a string indicating the currently selected entity if any i.e "Vase"
   - the currently selected entity itself
   - the configured settings
   - the smart select instance
 
 -}
-view : Bool -> String -> String -> Maybe a -> Settings msg a -> SmartSelect a -> Html msg
-view isDisabled baseLabel entityLabel selectedEntity settings (SmartSelect model) =
+view : Bool -> Maybe a -> Settings msg a -> SmartSelect a -> Html msg
+view isDisabled selectedEntity settings (SmartSelect model) =
+    let
+        selectedLabel =
+            Maybe.map (\selected -> settings.optionLabel selected) selectedEntity |> Maybe.withDefault settings.optionType
+    in
     if isDisabled then
         div
             [ id smartSelectId
             , class (String.join " " [ classPrefix ++ "selector-container", classPrefix ++ "single-bg-color", classPrefix ++ "disabled" ])
             ]
             [ div [ class (classPrefix ++ "label-and-selector-container") ]
-                [ div [ class (classPrefix ++ "label") ] [ text entityLabel ] ]
+                [ div [ class (classPrefix ++ "label") ] [ text selectedLabel ] ]
             ]
 
     else
@@ -511,7 +517,7 @@ view isDisabled baseLabel entityLabel selectedEntity settings (SmartSelect model
             , Events.preventDefaultOn "keydown" (keyActionMapper selectedEntity settings (SmartSelect model))
             ]
             [ div [ class (classPrefix ++ "label-and-selector-container") ]
-                [ div [ class (classPrefix ++ "label") ] [ text entityLabel ]
+                [ div [ class (classPrefix ++ "label") ] [ text selectedLabel ]
                 , if model.isOpen then
                     -- figure out alignment issue if possible instead of using 'left -1px'
                     div
@@ -525,7 +531,7 @@ view isDisabled baseLabel entityLabel selectedEntity settings (SmartSelect model
                         [ div
                             [ class (classPrefix ++ "single-selector-input-container") ]
                             [ input [ id "smart-select-input", class (classPrefix ++ "single-selector-input"), autocomplete False, onInput <| \val -> settings.internalMsg ( SetSearchText val, selectedEntity ) ] [] ]
-                        , viewResults selectedEntity (SmartSelect model) settings baseLabel
+                        , viewResults selectedEntity (SmartSelect model) settings
                         ]
 
                   else
