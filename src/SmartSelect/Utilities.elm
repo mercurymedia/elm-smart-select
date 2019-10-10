@@ -1,6 +1,12 @@
 module SmartSelect.Utilities exposing
-    ( SearchUnion(..)
-    , KeyCode(..), decodeOptions, eventIsOutsideComponent, newFocusedIndexAfterSelection, preventDefault, spinnerConfig, toKeyCode
+    ( KeyCode(..)
+    , RemoteSearchAttrs
+    , decodeOptions
+    , eventIsOutsideComponent
+    , newFocusedIndexAfterSelection
+    , preventDefault
+    , spinnerConfig
+    , toKeyCode
     )
 
 {-| Utilities shared by the SmartSelect modules.
@@ -8,7 +14,7 @@ module SmartSelect.Utilities exposing
 
 # SmartSelect settings
 
-@docs SearchUnion, ApiSearchAttrs
+@docs ApiSearchAttrs
 
 -}
 
@@ -18,18 +24,9 @@ import Json.Decode as Decode exposing (Decoder)
 import Spinner
 
 
-{-| The `SmartSelect` can execute searches on either a `Local` or `API` basis. If the data you wish to select from has already been loaded onto the model or only exists on the frontend, use `Local`.
-It expects a function that takes in a search string and returns a list of data to be rendered. If you wish to query/search data from an external source for your selection set, use `API`.
-`API` expects a tuple with a `Color.Color` to indicate what color the loading spinner should be, as well as attributes to help execute the proper query.
+{-| Fields to be provided to facilitate the external request. The function provided to url takes in searchText in the event it is necessary for the query.
 -}
-type SearchUnion a
-    = Local (String -> List a)
-    | API ( Color.Color, ApiSearchAttrs a )
-
-
-{-| Fields to be provided to the `API` constructor of the search union to facilitate the external request. The function provided to url takes in searchText in the event it is necessary for the query.
--}
-type alias ApiSearchAttrs a =
+type alias RemoteSearchAttrs a =
     { headers : List Header
     , url : String -> String
     , optionDecoder : Decoder a

@@ -1,10 +1,9 @@
-module MultiSelect.Main exposing (main)
+module MultiSelectLocal.Main exposing (main)
 
 import Browser
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
-import SmartSelect.Utilities exposing (SearchUnion(..))
-import SmartSelectMulti as MultiSelect
+import MultiSelectLocal as Select
 
 
 type alias Product =
@@ -15,46 +14,39 @@ type alias Product =
 
 
 type alias Model =
-    { multiSelect : MultiSelect.SmartSelect Msg Product
-
-    -- other fields...
+    { select : Select.SmartSelect Msg Product
+    , products : List Product
     }
 
 
-multiSelectSettings : List Product -> MultiSelect.Settings Msg Product
-multiSelectSettings products =
-    { internalMsg = \msg -> HandleMultiSelectUpdate msg
+selectSettings : Select.Settings Msg Product
+selectSettings =
+    { internalMsg = \msg -> HandleSelectUpdate msg
     , searchFn =
-        Local
-            (\searchText ->
-                if searchText == "" then
-                    products
-
-                else
-                    List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
-            )
+        \searchText products ->
+            List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
     , optionType = "Product"
     , optionLabel = \product -> product.name
     , optionDescription = \product -> product.price
-    , debounceDuration = 0
-    , characterSearchThreshold = 0
+    , optionsContainerMaxHeight = 300
+    , optionHeight = 50
     , closeOnSelect = False
     }
 
 
 type Msg
-    = HandleMultiSelectUpdate (MultiSelect.Msg Product)
+    = HandleSelectUpdate (Select.Msg Product)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        HandleMultiSelectUpdate sMsg ->
+        HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelect.update sMsg model.multiSelect
+                    Select.update sMsg model.select
             in
-            ( { model | multiSelect = updatedSelect }, selectCmd )
+            ( { model | select = updatedSelect }, selectCmd )
 
 
 viewSelectedProduct : Product -> Html Msg
@@ -66,10 +58,10 @@ viewSelectedProduct product =
 view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi SmartSelect" ]
+        [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi select with local search" ]
         , div
-            [ style "width" "500px", style "display" "inline-flex" ]
-            [ MultiSelect.view False viewSelectedProduct model.multiSelect ]
+            [ style "width" "500px" ]
+            [ Select.view False model.products viewSelectedProduct model.select ]
         ]
 
 
@@ -87,12 +79,36 @@ exampleProducts =
       , name = "product 3"
       , price = "$7.00"
       }
+    , { id = 4
+      , name = "product 4"
+      , price = "$3.00"
+      }
+    , { id = 5
+      , name = "product 5"
+      , price = "$5.00"
+      }
+    , { id = 6
+      , name = "product 6"
+      , price = "$7.00"
+      }
+    , { id = 7
+      , name = "product 7"
+      , price = "$3.00"
+      }
+    , { id = 8
+      , name = "product 8"
+      , price = "$5.00"
+      }
+    , { id = 9
+      , name = "product 9"
+      , price = "$7.00"
+      }
     ]
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { multiSelect = MultiSelect.init (multiSelectSettings exampleProducts) [] }
+    ( { select = Select.init selectSettings [], products = exampleProducts }
     , Cmd.none
     )
 
@@ -100,8 +116,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ MultiSelect.subscriptions model.multiSelect
-        ]
+        [ Select.subscriptions model.select ]
 
 
 main : Program () Model Msg

@@ -130,7 +130,7 @@
     padding: 0.25rem 0.5rem 0.25rem 0.5rem;
 }
 
-.elm-smart-select--select-options-container {
+#elm-smart-select--select-options-container {
     width: 100%;
 }
 
