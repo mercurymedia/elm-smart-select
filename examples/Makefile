@@ -1,7 +1,7 @@
-all: single_select_local multi_select_local
+all: single_select multi_select
 
-single_select_local:
-	cd .. && elm make examples/SingleSelectLocal/Main.elm --output=examples/Compiled/single_select_local.js
+single_select:
+	cd .. && elm make examples/SingleSelect/Main.elm --output=examples/Compiled/single_select.js
 
-multi_select_local:
-	cd .. && elm make examples/MultiSelectLocal/Main.elm --output=examples/Compiled/multi_select_local.js
+multi_select:
+	cd .. && elm make examples/MultiSelect/Main.elm --output=examples/Compiled/multi_select.js

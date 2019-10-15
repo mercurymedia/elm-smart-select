@@ -1,9 +1,9 @@
-module SingleSelectLocal.Main exposing (main)
+module MultiSelect.Main exposing (main)
 
 import Browser
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (style)
-import SingleSelectLocal as Select
+import MultiSelect
 
 
 type alias Product =
@@ -14,28 +14,27 @@ type alias Product =
 
 
 type alias Model =
-    { select : Select.SmartSelect Msg Product
+    { select : MultiSelect.SmartSelect Msg Product
     , products : List Product
     }
 
 
-selectSettings : Select.Settings Msg Product
+selectSettings : MultiSelect.Settings Msg Product
 selectSettings =
     { internalMsg = \msg -> HandleSelectUpdate msg
     , searchFn =
         \searchText products ->
             List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
     , optionType = "Product"
-    , optionLabel = \product -> product.name
-    , optionDescription = \product -> product.price
+    , optionLabelFn = .name
+    , optionDescriptionFn = .price
     , optionsContainerMaxHeight = 300
-    , optionHeight = 50
-    , closeOnSelect = True
+    , closeOnSelect = False
     }
 
 
 type Msg
-    = HandleSelectUpdate (Select.Msg Product)
+    = HandleSelectUpdate (MultiSelect.Msg Product)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -44,18 +43,24 @@ update msg model =
         HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    Select.update sMsg model.select
+                    MultiSelect.update sMsg model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
+
+
+viewSelectedProduct : Product -> Html Msg
+viewSelectedProduct product =
+    div [ style "padding" ".25rem", style "cursor" "pointer", style "background-color" "#edf2f7", style "border" "1px solid #a0aec0" ]
+        [ text (product.name ++ " " ++ product.price) ]
 
 
 view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ div [ style "padding-bottom" "1rem" ] [ text "This is a single select with local search" ]
+        [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ Select.view False model.products model.select ]
+            [ MultiSelect.view False model.products viewSelectedProduct model.select ]
         ]
 
 
@@ -102,7 +107,7 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = Select.init selectSettings Nothing, products = exampleProducts }
+    ( { select = MultiSelect.init selectSettings, products = exampleProducts }
     , Cmd.none
     )
 
@@ -110,7 +115,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Select.subscriptions model.select ]
+        [ MultiSelect.subscriptions model.select ]
 
 
 main : Program () Model Msg

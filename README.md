@@ -4,15 +4,25 @@ A select component written in Elm 0.19
 ## Install
 elm install mercurymedia/elm-smart-select
 
+## In Action
+
+#### Single Select
+
+![SingleSelect](https://user-images.githubusercontent.com/20546636/66810094-dace5480-ef2e-11e9-9e9a-df1fddb38dc6.gif)
+
+#### Multi Select
+
+![MultiSelect](https://user-images.githubusercontent.com/20546636/66810122-e1f56280-ef2e-11e9-9ac6-f2de80802a58.gif)
+
 ## Usage
-This package exposes four modules `SingleSelectLocal`, `SingleSelectRemote`, `MultiSelectLocal` and `MultiSelectRemote`. The `Single` pickers can be used to pick a single element while the `Multi` pickers are used to select a list of elements. The `Local` pickers select from preloaded data where as the `Remote` pickers query a remote source. To keep things simple, the documentation here focuses on the `SingleSelectLocal`. For more information, refer to the module documentation and examples.
+This package exposes four modules `SingleSelect`, `SingleSelectRemote`, `MultiSelect` and `MultiSelectRemote`. The `Single` pickers can be used to pick a single element while the `Multi` pickers are used to select a list of elements. The pickers without a suffix select from preloaded data whereas the `Remote` pickers query a remote source. To keep things simple, the documentation here focuses on the `SingleSelect`. For more information, refer to the module documentation and examples.
 
 There are 7 steps to configure a `SmartSelect`:
 
 1. Import the select and add it to your model providing the datatype of the data to be selected.
 
 ```elm
-import SingleSelectLocal as Select
+import SingleSelect
 
 type alias Product =
     { id : Int
@@ -22,7 +32,7 @@ type alias Product =
 
 type alias Model =
     { products : List Product
-    , select : Select.SmartSelect Msg Product
+    , select : SingleSelect.SmartSelect Msg Product
     }
 ```
 
@@ -31,34 +41,33 @@ type alias Model =
 ```elm
 type Msg
     = ...
-    | HandleSelectUpdate (Select.Msg Product)
+    | HandleSelectUpdate (SingleSelect.Msg Product)
 ```
 
-3. Configure the `Settings` for the select. The `internalMsg` field takes a function that expects a `Select.Msg` and returns the `Msg` we defined in step 2. Please refer to the module documentation for more information on the settings.
+3. Configure the `Settings` for the select. The `internalMsg` field takes a function that expects a `SingleSelect.Msg` and returns the `Msg` we defined in step 2. Please refer to the module documentation for more information on the settings.
 
 ```elm
-selectSettings : Select.Settings Msg Product
+selectSettings : SingleSelect.Settings Msg Product
 selectSettings =
     { internalMsg = \msg -> HandleSelectUpdate msg
     , searchFn =
         \searchText products ->
             List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
     , optionType = "Product"
-    , optionLabel = \product -> product.name
-    , optionDescription = \product -> product.price
+    , optionLabelFn = \product -> product.name
+    , optionDescriptionFn = \product -> product.price
     , optionsContainerMaxHeight = 300
-    , optionHeight = 50
     , closeOnSelect = True
     }
 ```
 
-4. Initialize the select. The `init` function takes in the select settings and a previously selected element, if any. In the case of the `Single` pickers, the selected element is a `Maybe a` whereas in the `Multi` pickers selected is a `List a`.
+4. Initialize the select. The `init` function takes in the select settings. In the event you wish to `init` a select with a previously picked entity, simply pipe the result of the `init` to `SingleSelect.setSelected` passing the previous selection.
 
 ```elm
 init : ( Model, Cmd Msg )
 init =
     ( { products = products
-      , select = Select.init selectSettings Nothing
+      , select = SingleSelect.init selectSettings
       }
     )
 
@@ -77,7 +86,7 @@ products =
 
 ```
 
-5. View the select. Call `Select.view`. **_Note:_** The `view` functions for each of the modules expect slightly different arguments from one another. Please refer to the relevant module documentation for further information.
+5. View the select. Call `SingleSelect.view`. **_Note:_** The `view` functions for each of the modules expect slightly different arguments from one another. Please refer to the relevant module documentation for further information.
 
 ```elm
 view : Model -> Html Msg
@@ -86,11 +95,11 @@ view model =
         [ ...
         , div
             [ style "width" "500px" ]
-            [ Select.view False model.products model.select ]
+            [ SingleSelect.view False model.products model.select ]
         ]
 ```
 
-6. Update the select. Here is where we handle the `Msg` we defined in step 2. As indicated before, the message carries with it a `Select.Msg` for updating the select component. 
+6. Update the select. Here is where we handle the `Msg` we defined in step 2. As indicated before, the message carries with it a `SingleSelect.Msg` for updating the select component. 
 
 ```elm
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -101,9 +110,9 @@ update msg model =
         HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SmartSelect.update sMsg model.singleSelect
+                    SingleSelect.update sMsg model.select
             in
-            ( { model | singleSelect = updatedSelect }, selectCmd )
+            ( { model | select = updatedSelect }, selectCmd )
 ```
 
 `SingleSelect.upate` returns an updated smart select instance and a cmd.
@@ -115,7 +124,7 @@ You might be wondering were the selected state is. The smart select stores the s
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Select.subscriptions model.select
+    SingleSelect.subscriptions model.select
 ```
 
 ## Examples

@@ -1,4 +1,4 @@
-module MultiSelectLocal exposing
+module MultiSelect exposing
     ( SmartSelect, Msg, init, view, subscriptions, update
     , Settings
     , selected
@@ -61,10 +61,10 @@ type alias Model msg a =
 
   - The `internalMsg` field takes a function that expects a SmartSelect.Msg and returns an externally defined msg.
   - `optionType` is a string that indicates what kind of data is being selected, i.e. "Product" or "Client"
-  - `optionLabel` expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose"
-  - `optionDescription` expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft"
+  - `optionLabelFn` expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose"
+  - `optionDescriptionFn` expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft"
       - Because the smart select is unaware of the type and structure of the data it is processing, these functions are necessary to help render the options in the select dropdown.
-  - The `optionsContainerMaxHeight` and `optionHeight` fields specify the height of the container of the selectable options and the options themselves, respectively. These fields help facilitate scroll functionality.
+  - The `optionsContainerMaxHeight` field specifies the height of the container of the selectable options. This field helps facilitate scroll functionality.
   - The `searchFn` field expects a function taking the search text and the items to search and returning the filtered items.
   - `closeOnSelect` indicates whether or not the `SmartSelect` should close itself after a selection has been made.
 
@@ -72,10 +72,9 @@ type alias Model msg a =
 type alias Settings msg a =
     { internalMsg : Msg a -> msg
     , optionType : String
-    , optionLabel : a -> String
-    , optionDescription : a -> String
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
     , optionsContainerMaxHeight : Float
-    , optionHeight : Float
     , searchFn : String -> List a -> List a
     , closeOnSelect : Bool
     }
@@ -97,16 +96,16 @@ type Msg a
     | Close
 
 
-{-| Instantiates and returns a smart select. Takes in the select configuration and a list of previously selected elements, if any.
+{-| Instantiates and returns a smart select.
 -}
-init : Settings msg a -> List a -> SmartSelect msg a
-init settings alreadySelected =
+init : Settings msg a -> SmartSelect msg a
+init settings =
     SmartSelect
         { settings = settings
         , selectWidth = 0
         , isOpen = False
         , searchText = ""
-        , selected = alreadySelected
+        , selected = []
         , focusedIndex = 0
         }
 
@@ -276,19 +275,20 @@ scrollTask : Settings msg a -> Int -> Task.Task Dom.Error ()
 scrollTask settings idx =
     Task.sequence
         [ Dom.getElement (optionId idx) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (optionId idx) |> Task.map (\x -> x.element.height)
         , Dom.getElement "elm-smart-select--select-options-container" |> Task.map (\x -> x.element.y)
         , Dom.getViewportOf "elm-smart-select--select-options-container" |> Task.map (\x -> x.viewport.y)
         ]
         |> Task.andThen
             (\outcome ->
                 case outcome of
-                    optionY :: containerY :: containerScrollTop :: [] ->
-                        if optionY >= containerY + settings.optionsContainerMaxHeight then
-                            Dom.setViewportOf "elm-smart-select--select-options-container" 0 (containerScrollTop + settings.optionHeight)
+                    optionY :: optionHeight :: containerY :: containerScrollTop :: [] ->
+                        if (optionY + optionHeight) >= containerY + settings.optionsContainerMaxHeight then
+                            Dom.setViewportOf "elm-smart-select--select-options-container" 0 (containerScrollTop + ((optionY - (containerY + settings.optionsContainerMaxHeight)) + optionHeight))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else if optionY < containerY then
-                            Dom.setViewportOf "elm-smart-select--select-options-container" 0 (containerScrollTop - settings.optionHeight)
+                            Dom.setViewportOf "elm-smart-select--select-options-container" 0 (containerScrollTop + (optionY - containerY))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else
@@ -327,9 +327,8 @@ showOptions model options =
                         , id <| optionId idx
                         , classList
                             [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == model.focusedIndex ) ]
-                        , style "height" (String.fromFloat model.settings.optionHeight ++ "px")
                         ]
-                        [ div [] [ text (model.settings.optionLabel option) ]
+                        [ div [] [ text (model.settings.optionLabelFn option) ]
                         , div
                             [ classList
                                 [ ( classPrefix ++ "select-option-description", True )
@@ -337,7 +336,7 @@ showOptions model options =
                                 , ( classPrefix ++ "select-option-description-focused", idx == model.focusedIndex )
                                 ]
                             ]
-                            [ text (model.settings.optionDescription option) ]
+                            [ text (model.settings.optionDescriptionFn option) ]
                         ]
                 )
                 options

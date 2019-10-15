@@ -5,9 +5,9 @@
     "license": "MIT",
     "version": "1.0.0",
     "exposed-modules": [
-        "MultiSelectLocal",
+        "MultiSelect",
         "MultiSelectRemote",
-        "SingleSelectLocal",
+        "SingleSelect",
         "SingleSelectRemote"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
