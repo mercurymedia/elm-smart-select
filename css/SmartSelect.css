@@ -1,0 +1,186 @@
+.elm-smart-select--single-bg-color {
+    background-color: #edf2f7;
+}
+
+.elm-smart-select--multi-bg-color {
+    background-color: #fff;
+}
+
+.elm-smart-select--selector-container {
+    width: 100%;
+}
+
+.elm-smart-select--multi-selector-container-min-height {
+    min-height: 1.5rem;
+}
+
+.elm-smart-select--disabled {
+    cursor: default;
+    opacity: .5;
+    border: 1px solid #a0aec0;
+    border-radius: .25rem;
+}
+
+.elm-smart-select--enabled-closed {
+    cursor: pointer;
+    border: 1px solid #a0aec0;
+    border-radius: .25rem;
+}
+
+.elm-smart-select--enabled-opened {
+    border-style: solid;
+    border-top-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 0;
+    border-color: #a0aec0;
+    border-top-left-radius: .25rem;
+    border-top-right-radius: .25rem;
+}
+
+.elm-smart-select--label-and-selector-container {
+    position: relative;
+}
+
+.elm-smart-select--label {
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+}
+
+.elm-smart-select--options-container {
+    position: absolute;
+    z-index: 50;
+    border-style: solid;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 0;
+    border-color: #a0aec0;
+    border-bottom-left-radius: .25rem;
+    border-bottom-right-radius: .25rem;
+}
+
+.elm-smart-select--invisible {
+    visibility: hidden;
+}
+
+.elm-smart-select--single-selector-input-container {
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+}
+
+.elm-smart-select--single-selector-input {
+    width: 100%;
+    outline: 0;
+    border: 1px solid #a0aec0;
+    border-radius: .25rem;
+}
+
+.elm-smart-select--single-selector-input:focus {
+    border-color: #3182ce;
+}
+
+.elm-smart-select--multi-selected-and-results-container {
+    position: relative;
+}
+
+.elm-smart-select--multi-selected-container {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.elm-smart-select--selected-entity-wrapper {
+    margin: .25rem;
+}
+
+.elm-smart-select--multi-input-container {
+    width: 50px;
+}
+
+.elm-smart-select--multi-input {
+    width: 100%;
+    border: none;
+    outline: 0;
+}
+
+.elm-smart-select--search-or-no-results-text {
+    width: 100%;
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+}
+
+.elm-smart-select--loading-spinner-container {
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 4rem;
+}
+
+.elm-smart-select--loading-spinner {
+    position: relative;
+}
+
+.elm-smart-select--search-prompt-container {
+    width: 100%;
+}
+
+.elm-smart-select--search-prompt {
+    width: 100%;
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+}
+
+#elm-smart-select--select-options-container {
+    width: 100%;
+}
+
+.elm-smart-select--select-option {
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+    cursor: pointer;
+}
+
+.elm-smart-select--select-option-focused {
+    background-color: #3182ce;
+    color: #fff;
+}
+
+.elm-smart-select--select-option-description {
+    font-size: .875rem;
+    padding: .25rem;
+}
+
+.elm-smart-select--select-option-description-unfocused {
+    color: #4a5568;
+}
+
+.elm-smart-select--select-option-description-focused {
+    color: #edf2f7;
+}
+
+.elm-smart-select--error-box-container {
+    padding: 0.5rem;
+}
+
+.elm-smart-select--error-box {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #feb2b2;
+    color: #c53030;
+    border-radius: .25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.elm-smart-select--error-container {
+    flex-wrap: wrap;
+    margin-right: 1rem;
+}
+
+.elm-smart-select--request-decorator {
+    padding-bottom: 0.25rem;
+}
+
+.elm-smart-select--dismiss-error-x {
+    cursor: pointer;
+}
