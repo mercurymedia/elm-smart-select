@@ -43,13 +43,12 @@ import Task
 
 {-| The opaque type representing a particular smart select instance.
 -}
-type SmartSelect msg a
-    = SmartSelect (Model msg a)
+type SmartSelect a
+    = SmartSelect (Model a)
 
 
-type alias Model msg a =
-    { settings : Settings msg a
-    , selectWidth : Float
+type alias Model a =
+    { selectWidth : Float
     , isOpen : Bool
     , searchText : String
     , selected : Maybe a
@@ -97,11 +96,10 @@ type Msg a
 
 {-| Instantiates and returns a smart select.
 -}
-init : Settings msg a -> SmartSelect msg a
-init settings =
+init : SmartSelect a
+init =
     SmartSelect
-        { settings = settings
-        , selectWidth = 0
+        { selectWidth = 0
         , isOpen = False
         , searchText = ""
         , selected = Nothing
@@ -116,12 +114,12 @@ smartSelectId =
 
 {-| Events external to the smart select to which it is subscribed.
 -}
-subscriptions : SmartSelect msg a -> Sub msg
-subscriptions (SmartSelect model) =
+subscriptions : Settings msg a -> SmartSelect a -> Sub msg
+subscriptions settings (SmartSelect model) =
     if model.isOpen then
         Sub.batch
-            [ Browser.Events.onResize (\h w -> model.settings.internalMsg <| WindowResized ( h, w ))
-            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId model.settings)
+            [ Browser.Events.onResize (\h w -> settings.internalMsg <| WindowResized ( h, w ))
+            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId settings)
             ]
 
     else
@@ -141,8 +139,8 @@ clickedOutsideSelect componentId settings =
             )
 
 
-keyActionMapper : Model msg a -> List ( Int, a ) -> Decode.Decoder ( msg, Bool )
-keyActionMapper model options =
+keyActionMapper : Settings msg a -> Model a -> List ( Int, a ) -> Decode.Decoder ( msg, Bool )
+keyActionMapper settings model options =
     Decode.field "key" Decode.string
         |> Decode.map Utilities.toKeyCode
         |> Decode.map
@@ -157,7 +155,7 @@ keyActionMapper model options =
                                 else
                                     model.focusedIndex - 1
                         in
-                        ( model.settings.internalMsg <| UpKeyPressed newIdx, Utilities.preventDefault key )
+                        ( settings.internalMsg <| UpKeyPressed newIdx, Utilities.preventDefault key )
 
                     Down ->
                         let
@@ -168,45 +166,44 @@ keyActionMapper model options =
                                 else
                                     model.focusedIndex + 1
                         in
-                        ( model.settings.internalMsg <| DownKeyPressed newIdx, Utilities.preventDefault key )
+                        ( settings.internalMsg <| DownKeyPressed newIdx, Utilities.preventDefault key )
 
                     Enter ->
                         case Dict.get model.focusedIndex (Dict.fromList options) of
                             Just item ->
-                                ( model.settings.internalMsg <| HandleSelection <| ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, item ), Utilities.preventDefault key )
+                                ( settings.internalMsg <| HandleSelection <| ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, item ), Utilities.preventDefault key )
 
                             Nothing ->
-                                ( model.settings.internalMsg NoOp, Utilities.preventDefault key )
+                                ( settings.internalMsg NoOp, Utilities.preventDefault key )
 
                     Escape ->
-                        ( model.settings.internalMsg Close, Utilities.preventDefault key )
+                        ( settings.internalMsg Close, Utilities.preventDefault key )
 
                     Other ->
-                        ( model.settings.internalMsg NoOp, Utilities.preventDefault key )
+                        ( settings.internalMsg NoOp, Utilities.preventDefault key )
             )
 
 
 {-| Get the currently selected entity if any.
 -}
-selected : SmartSelect msg a -> Maybe a
+selected : SmartSelect a -> Maybe a
 selected (SmartSelect model) =
     model.selected
 
 
 {-| It is possible that the select is instantiated on your model before data representing
 a previous selection is loaded. Use this function to update the picked selection in
-the select when the appropriate data is received. Use this method sparingly, if at all.
-The selected state should ideally only change due to user input.
+the select when the appropriate data is received.
 -}
-setSelected : a -> SmartSelect msg a -> SmartSelect msg a
+setSelected : Maybe a -> SmartSelect a -> SmartSelect a
 setSelected newSelected (SmartSelect model) =
-    SmartSelect { model | selected = Just newSelected }
+    SmartSelect { model | selected = newSelected }
 
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
 -}
-update : Msg a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
-update msg (SmartSelect model) =
+update : Msg a -> Settings msg a -> SmartSelect a -> ( SmartSelect a, Cmd msg )
+update msg settings (SmartSelect model) =
     case msg of
         NoOp ->
             ( SmartSelect model, Cmd.none )
@@ -215,23 +212,23 @@ update msg (SmartSelect model) =
             ( SmartSelect { model | focusedIndex = idx }, Cmd.none )
 
         HandleSelection ( idx, newSelected ) ->
-            if model.settings.closeOnSelect then
+            if settings.closeOnSelect then
                 ( SmartSelect { model | isOpen = False, searchText = "", selected = Just newSelected }, Cmd.none )
 
             else
-                ( SmartSelect { model | focusedIndex = idx, selected = Just newSelected }, focusInput model.settings )
+                ( SmartSelect { model | focusedIndex = idx, selected = Just newSelected }, focusInput settings )
 
         UpKeyPressed idx ->
-            ( SmartSelect { model | focusedIndex = idx }, scrollToOption model.settings idx )
+            ( SmartSelect { model | focusedIndex = idx }, scrollToOption settings idx )
 
         DownKeyPressed idx ->
-            ( SmartSelect { model | focusedIndex = idx }, scrollToOption model.settings idx )
+            ( SmartSelect { model | focusedIndex = idx }, scrollToOption settings idx )
 
         SetSearchText text ->
             ( SmartSelect { model | searchText = text, focusedIndex = 0 }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getSelectWidth model.settings )
+            ( SmartSelect model, getSelectWidth settings )
 
         MaybeGotSelect result ->
             case result of
@@ -240,13 +237,13 @@ update msg (SmartSelect model) =
                         selectWidth =
                             component.element |> (\el -> el.width)
                     in
-                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.settings )
+                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput settings )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
 
         Open ->
-            ( SmartSelect { model | isOpen = True, focusedIndex = 0 }, Cmd.batch [ getSelectWidth model.settings, focusInput model.settings ] )
+            ( SmartSelect { model | isOpen = True, focusedIndex = 0 }, Cmd.batch [ getSelectWidth settings, focusInput settings ] )
 
         Close ->
             ( SmartSelect { model | isOpen = False, searchText = "" }, Cmd.none )
@@ -305,26 +302,26 @@ optionId idx =
     "option-" ++ String.fromInt idx
 
 
-showOptions : Model msg a -> List ( Int, a ) -> Html msg
-showOptions model options =
+showOptions : Settings msg a -> Model a -> List ( Int, a ) -> Html msg
+showOptions settings model options =
     if List.isEmpty options && model.searchText /= "" then
         div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No results found for: " ++ model.searchText) ]
 
     else if List.isEmpty options then
-        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No " ++ model.settings.optionType ++ "s are available") ]
+        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No " ++ settings.optionType ++ "s are available") ]
 
     else
-        div [ id (classPrefix ++ "select-options-container"), style "max-height" (String.fromFloat model.settings.optionsContainerMaxHeight ++ "px"), style "overflow" "auto" ]
+        div [ id (classPrefix ++ "select-options-container"), style "max-height" (String.fromFloat settings.optionsContainerMaxHeight ++ "px"), style "overflow" "auto" ]
             (List.map
                 (\( idx, option ) ->
                     div
-                        [ Events.stopPropagationOn "click" (Decode.succeed ( model.settings.internalMsg <| HandleSelection ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, option ), True ))
-                        , onMouseEnter <| model.settings.internalMsg <| SetFocused idx
+                        [ Events.stopPropagationOn "click" (Decode.succeed ( settings.internalMsg <| HandleSelection ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, option ), True ))
+                        , onMouseEnter <| settings.internalMsg <| SetFocused idx
                         , id <| optionId idx
                         , classList
                             [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == model.focusedIndex ) ]
                         ]
-                        [ div [] [ text (model.settings.optionLabelFn option) ]
+                        [ div [] [ text (settings.optionLabelFn option) ]
                         , div
                             [ classList
                                 [ ( classPrefix ++ "select-option-description", True )
@@ -332,7 +329,7 @@ showOptions model options =
                                 , ( classPrefix ++ "select-option-description-focused", idx == model.focusedIndex )
                                 ]
                             ]
-                            [ text (model.settings.optionDescriptionFn option) ]
+                            [ text (settings.optionDescriptionFn option) ]
                         ]
                 )
                 options
@@ -345,14 +342,14 @@ removeSelectedFromOptions selectedOption options =
         |> Maybe.withDefault options
 
 
-filterAndIndexOptions : Model msg a -> List a -> List ( Int, a )
-filterAndIndexOptions model unfilteredOptions =
+filterAndIndexOptions : Settings msg a -> Model a -> List a -> List ( Int, a )
+filterAndIndexOptions settings model unfilteredOptions =
     if model.searchText == "" then
         removeSelectedFromOptions model.selected unfilteredOptions
             |> List.indexedMap Tuple.pair
 
     else
-        model.settings.searchFn model.searchText unfilteredOptions
+        settings.searchFn model.searchText unfilteredOptions
             |> removeSelectedFromOptions model.selected
             |> List.indexedMap Tuple.pair
 
@@ -361,14 +358,15 @@ filterAndIndexOptions model unfilteredOptions =
 
   - a boolean indicating if the select is disabled or not
   - a list of the items from which to select
-  - the smart select instance
+  - the select settings
+  - the select instance
 
 -}
-view : Bool -> List a -> SmartSelect msg a -> Html msg
-view isDisabled allOptions (SmartSelect model) =
+view : Bool -> List a -> Settings msg a -> SmartSelect a -> Html msg
+view isDisabled allOptions settings (SmartSelect model) =
     let
         selectedLabel =
-            Maybe.map (\s -> model.settings.optionLabelFn s) model.selected |> Maybe.withDefault model.settings.optionType
+            Maybe.map (\s -> settings.optionLabelFn s) model.selected |> Maybe.withDefault settings.optionType
     in
     if isDisabled then
         div
@@ -387,8 +385,8 @@ view isDisabled allOptions (SmartSelect model) =
                 , ( classPrefix ++ "enabled-closed", not model.isOpen )
                 , ( classPrefix ++ "enabled-opened", model.isOpen )
                 ]
-            , onClick <| model.settings.internalMsg Open
-            , Events.preventDefaultOn "keydown" (keyActionMapper model <| filterAndIndexOptions model allOptions)
+            , onClick <| settings.internalMsg Open
+            , Events.preventDefaultOn "keydown" (keyActionMapper settings model <| filterAndIndexOptions settings model allOptions)
             ]
             [ div [ class (classPrefix ++ "label-and-selector-container") ]
                 [ div [ class (classPrefix ++ "label") ] [ text selectedLabel ]
@@ -408,12 +406,12 @@ view isDisabled allOptions (SmartSelect model) =
                                 [ id "smart-select-input"
                                 , class (classPrefix ++ "single-selector-input")
                                 , autocomplete False
-                                , onInput <| \val -> model.settings.internalMsg <| SetSearchText val
-                                , placeholder <| "Search for a " ++ model.settings.optionType
+                                , onInput <| \val -> settings.internalMsg <| SetSearchText val
+                                , placeholder <| "Search for a " ++ settings.optionType
                                 ]
                                 []
                             ]
-                        , showOptions model <| filterAndIndexOptions model allOptions
+                        , showOptions settings model <| filterAndIndexOptions settings model allOptions
                         ]
 
                   else

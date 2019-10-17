@@ -49,13 +49,12 @@ import Task
 
 {-| The opaque type representing a particular smart select instance.
 -}
-type SmartSelect msg a
-    = SmartSelect (Model msg a)
+type SmartSelect a
+    = SmartSelect (Model a)
 
 
-type alias Model msg a =
-    { settings : Settings msg a
-    , selectWidth : Float
+type alias Model a =
+    { selectWidth : Float
     , isOpen : Bool
     , searchText : String
     , debounce : Debounce String
@@ -75,7 +74,7 @@ type alias Model msg a =
       - Because the smart select is unaware of the type and structure of the data it is processing, these functions are necessary to help render the options in the select dropdown.
   - The `optionsContainerMaxHeight` field specifies the height of the container of the selectable options. This field helps facilitate scroll functionality.
   - The `searchFn` field expects an instance of `RemoteSearchAttrs`, seen below. This type helps facilitate the remote request for data.
-  - `debounceDuration` indicates how long if at all to wait between the last keypress and executing a search. This is particularly useful if the search being executed is pinging an external source.
+  - `debounceDuration` indicates how long (in milliseconds) if at all to wait between the last keypress and executing a search. This is particularly useful if the search being executed is pinging an external source.
   - `spinnerColor` indicates the color that the loading spinner should be.
   - `characterThreshold` indicates how many if any characters should be typed before a search is executed.
   - `closeOnSelect` indicates whether or not the `SmartSelect` should close itself after a selection has been made.
@@ -125,11 +124,10 @@ type Msg a
 
 {-| Instantiates and returns a smart select.
 -}
-init : Settings msg a -> SmartSelect msg a
-init settings =
+init : SmartSelect a
+init =
     SmartSelect
-        { settings = settings
-        , selectWidth = 0
+        { selectWidth = 0
         , isOpen = False
         , searchText = ""
         , debounce = Debounce.init
@@ -147,25 +145,25 @@ smartSelectId =
 
 {-| Events external to the smart select to which it is subscribed.
 -}
-subscriptions : SmartSelect msg a -> Sub msg
-subscriptions (SmartSelect model) =
+subscriptions : Settings msg a -> SmartSelect a -> Sub msg
+subscriptions settings (SmartSelect model) =
     if model.isOpen then
         Sub.batch
-            [ Browser.Events.onResize (\h w -> model.settings.internalMsg <| WindowResized ( h, w ))
+            [ Browser.Events.onResize (\h w -> settings.internalMsg <| WindowResized ( h, w ))
             , case model.remoteData of
                 NotAsked ->
-                    if model.settings.characterSearchThreshold == 0 then
-                        Sub.map (\sMsg -> model.settings.internalMsg <| SpinnerMsg sMsg) Spinner.subscription
+                    if settings.characterSearchThreshold == 0 then
+                        Sub.map (\sMsg -> settings.internalMsg <| SpinnerMsg sMsg) Spinner.subscription
 
                     else
                         Sub.none
 
                 Loading ->
-                    Sub.map (\sMsg -> model.settings.internalMsg <| SpinnerMsg sMsg) Spinner.subscription
+                    Sub.map (\sMsg -> settings.internalMsg <| SpinnerMsg sMsg) Spinner.subscription
 
                 _ ->
                     Sub.none
-            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId model.settings)
+            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId settings)
             ]
 
     else
@@ -185,8 +183,8 @@ clickedOutsideSelect componentId settings =
             )
 
 
-keyActionMapper : Model msg a -> Decode.Decoder ( msg, Bool )
-keyActionMapper model =
+keyActionMapper : Settings msg a -> Model a -> Decode.Decoder ( msg, Bool )
+keyActionMapper settings model =
     let
         options =
             case model.remoteData of
@@ -210,7 +208,7 @@ keyActionMapper model =
                                 else
                                     model.focusedIndex - 1
                         in
-                        ( model.settings.internalMsg <| UpKeyPressed newIdx, Utilities.preventDefault key )
+                        ( settings.internalMsg <| UpKeyPressed newIdx, Utilities.preventDefault key )
 
                     Down ->
                         let
@@ -221,21 +219,21 @@ keyActionMapper model =
                                 else
                                     model.focusedIndex + 1
                         in
-                        ( model.settings.internalMsg <| DownKeyPressed newIdx, Utilities.preventDefault key )
+                        ( settings.internalMsg <| DownKeyPressed newIdx, Utilities.preventDefault key )
 
                     Enter ->
                         case Dict.get model.focusedIndex (Dict.fromList options) of
                             Just item ->
-                                ( model.settings.internalMsg <| HandleSelection <| ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, item :: model.selected ), Utilities.preventDefault key )
+                                ( settings.internalMsg <| HandleSelection <| ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, item :: model.selected ), Utilities.preventDefault key )
 
                             Nothing ->
-                                ( model.settings.internalMsg NoOp, Utilities.preventDefault key )
+                                ( settings.internalMsg NoOp, Utilities.preventDefault key )
 
                     Escape ->
-                        ( model.settings.internalMsg Close, Utilities.preventDefault key )
+                        ( settings.internalMsg Close, Utilities.preventDefault key )
 
                     Other ->
-                        ( model.settings.internalMsg NoOp, Utilities.preventDefault key )
+                        ( settings.internalMsg NoOp, Utilities.preventDefault key )
             )
 
 
@@ -248,25 +246,24 @@ debounceConfig settings =
 
 {-| Get the currently selected entities if any.
 -}
-selected : SmartSelect msg a -> List a
+selected : SmartSelect a -> List a
 selected (SmartSelect model) =
     model.selected
 
 
 {-| It is possible that the select is instantiated on your model before data representing
 a previous selection is loaded. Use this function to update the picked selection in
-the select when the appropriate data is received. Use this method sparingly, if at all.
-The selected state should ideally only change due to user input.
+the select when the appropriate data is received.
 -}
-setSelected : List a -> SmartSelect msg a -> SmartSelect msg a
+setSelected : List a -> SmartSelect a -> SmartSelect a
 setSelected newSelected (SmartSelect model) =
     SmartSelect { model | selected = newSelected }
 
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
 -}
-update : Msg a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
-update msg (SmartSelect model) =
+update : Msg a -> Settings msg a -> SmartSelect a -> ( SmartSelect a, Cmd msg )
+update msg settings (SmartSelect model) =
     case msg of
         NoOp ->
             ( SmartSelect model, Cmd.none )
@@ -275,29 +272,29 @@ update msg (SmartSelect model) =
             ( SmartSelect { model | focusedIndex = idx }, Cmd.none )
 
         HandleSelection ( idx, newSelected ) ->
-            if model.settings.closeOnSelect then
+            if settings.closeOnSelect then
                 ( SmartSelect { model | isOpen = False, searchText = "", selected = newSelected, remoteData = NotAsked }, Cmd.none )
 
             else
-                ( SmartSelect { model | focusedIndex = idx, selected = newSelected }, focusInput model.settings )
+                ( SmartSelect { model | focusedIndex = idx, selected = newSelected }, focusInput settings )
 
         HandleDeselection newSelected ->
-            ( SmartSelect { model | selected = newSelected }, focusInput model.settings )
+            ( SmartSelect { model | selected = newSelected }, focusInput settings )
 
         UpKeyPressed idx ->
-            ( SmartSelect { model | focusedIndex = idx }, scrollToOption model.settings idx )
+            ( SmartSelect { model | focusedIndex = idx }, scrollToOption settings idx )
 
         DownKeyPressed idx ->
-            ( SmartSelect { model | focusedIndex = idx }, scrollToOption model.settings idx )
+            ( SmartSelect { model | focusedIndex = idx }, scrollToOption settings idx )
 
         SetSearchText text ->
-            if String.length text < model.settings.characterSearchThreshold then
+            if String.length text < settings.characterSearchThreshold then
                 ( SmartSelect { model | searchText = text, remoteData = NotAsked }, Cmd.none )
 
             else
                 let
                     ( debounce, cmd ) =
-                        Debounce.push (debounceConfig model.settings) text model.debounce
+                        Debounce.push (debounceConfig settings) text model.debounce
                 in
                 ( SmartSelect { model | searchText = text, debounce = debounce }
                 , cmd
@@ -307,8 +304,8 @@ update msg (SmartSelect model) =
             let
                 ( debounce, cmd ) =
                     Debounce.update
-                        (debounceConfig model.settings)
-                        (Debounce.takeLast (search model.settings))
+                        (debounceConfig settings)
+                        (Debounce.takeLast (search settings))
                         msg_
                         model.debounce
             in
@@ -327,7 +324,7 @@ update msg (SmartSelect model) =
             ( SmartSelect { model | focusedIndex = 0, remoteData = RemoteData.mapError (Errors.httpErrorToReqErrTuple "GET") data }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getSelectWidth model.settings )
+            ( SmartSelect model, getSelectWidth settings )
 
         MaybeGotSelect result ->
             case result of
@@ -336,7 +333,7 @@ update msg (SmartSelect model) =
                         selectWidth =
                             component.element |> (\el -> el.width)
                     in
-                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.settings )
+                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput settings )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
@@ -352,11 +349,11 @@ update msg (SmartSelect model) =
         Open ->
             let
                 cmd =
-                    if model.settings.characterSearchThreshold == 0 then
-                        Cmd.batch [ search model.settings "", getSelectWidth model.settings ]
+                    if settings.characterSearchThreshold == 0 then
+                        Cmd.batch [ search settings "", getSelectWidth settings ]
 
                     else
-                        Cmd.batch [ getSelectWidth model.settings, focusInput model.settings ]
+                        Cmd.batch [ getSelectWidth settings, focusInput settings ]
             in
             ( SmartSelect { model | isOpen = True, focusedIndex = 0 }, cmd )
 
@@ -430,31 +427,31 @@ optionId idx =
     "option-" ++ String.fromInt idx
 
 
-showSpinner : Model msg a -> Html msg
-showSpinner model =
-    div [ class (classPrefix ++ "loading-spinner-container") ] [ div [ class (classPrefix ++ "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig model.settings.spinnerColor) model.spinner ] ]
+showSpinner : Settings msg a -> Model a -> Html msg
+showSpinner settings model =
+    div [ class (classPrefix ++ "loading-spinner-container") ] [ div [ class (classPrefix ++ "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig settings.spinnerColor) model.spinner ] ]
 
 
-showOptions : Model msg a -> List ( Int, a ) -> Html msg
-showOptions model options =
+showOptions : Settings msg a -> Model a -> List ( Int, a ) -> Html msg
+showOptions settings model options =
     if List.isEmpty options && model.searchText /= "" then
         div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No results found for: " ++ model.searchText) ]
 
     else if List.isEmpty options then
-        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No " ++ model.settings.optionType ++ "s are available") ]
+        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No " ++ settings.optionType ++ "s are available") ]
 
     else
-        div [ class (classPrefix ++ "select-options-container"), style "max-height" (String.fromFloat model.settings.optionsContainerMaxHeight ++ "px"), style "overflow" "auto" ]
+        div [ class (classPrefix ++ "select-options-container"), style "max-height" (String.fromFloat settings.optionsContainerMaxHeight ++ "px"), style "overflow" "auto" ]
             (List.map
                 (\( idx, option ) ->
                     div
-                        [ Events.stopPropagationOn "click" (Decode.succeed ( model.settings.internalMsg <| HandleSelection ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, option :: model.selected ), True ))
-                        , onMouseEnter <| model.settings.internalMsg <| SetFocused idx
+                        [ Events.stopPropagationOn "click" (Decode.succeed ( settings.internalMsg <| HandleSelection ( Utilities.newFocusedIndexAfterSelection model.focusedIndex, option :: model.selected ), True ))
+                        , onMouseEnter <| settings.internalMsg <| SetFocused idx
                         , id <| optionId idx
                         , classList
                             [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == model.focusedIndex ) ]
                         ]
-                        [ div [] [ text (model.settings.optionLabelFn option) ]
+                        [ div [] [ text (settings.optionLabelFn option) ]
                         , div
                             [ classList
                                 [ ( classPrefix ++ "select-option-description", True )
@@ -462,42 +459,42 @@ showOptions model options =
                                 , ( classPrefix ++ "select-option-description-focused", idx == model.focusedIndex )
                                 ]
                             ]
-                            [ text (model.settings.optionDescriptionFn option) ]
+                            [ text (settings.optionDescriptionFn option) ]
                         ]
                 )
                 options
             )
 
 
-viewRemoteData : Model msg a -> Html msg
-viewRemoteData model =
+viewRemoteData : Settings msg a -> Model a -> Html msg
+viewRemoteData settings model =
     case model.remoteData of
         NotAsked ->
-            if model.settings.characterSearchThreshold == 0 then
-                showSpinner model
+            if settings.characterSearchThreshold == 0 then
+                showSpinner settings model
 
             else
                 let
                     difference =
-                        model.settings.characterSearchThreshold - String.length model.searchText
+                        settings.characterSearchThreshold - String.length model.searchText
 
                     searchPrompt =
-                        if model.settings.characterSearchThreshold > 0 && difference == 0 then
-                            showSpinner model
+                        if settings.characterSearchThreshold > 0 && difference == 0 then
+                            showSpinner settings model
 
                         else if difference > 1 then
-                            div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower model.settings.optionType ]
+                            div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower settings.optionType ]
 
                         else
-                            div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower model.settings.optionType ]
+                            div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower settings.optionType ]
                 in
                 div [ class (classPrefix ++ "search-prompt-container") ] [ searchPrompt ]
 
         Loading ->
-            showSpinner model
+            showSpinner settings model
 
         Success options ->
-            showOptions model <| filterAndIndexOptions model options
+            showOptions settings model <| filterAndIndexOptions model options
 
         Failure ( requestDecorator, errMsg ) ->
             div [ class (classPrefix ++ "error-box-container") ]
@@ -508,7 +505,7 @@ viewRemoteData model =
                         ]
                     , span
                         [ class (classPrefix ++ "dismiss-error-x")
-                        , onClick <| model.settings.internalMsg DismissError
+                        , onClick <| settings.internalMsg DismissError
                         ]
                         [ Icons.x
                             |> Icons.withSize 12
@@ -524,16 +521,16 @@ removeSelectedFromOptions selectedOptions options =
     List.filter (\el -> not <| List.member el selectedOptions) options
 
 
-filterAndIndexOptions : Model msg a -> List a -> List ( Int, a )
+filterAndIndexOptions : Model a -> List a -> List ( Int, a )
 filterAndIndexOptions model unfilteredOptions =
     removeSelectedFromOptions model.selected unfilteredOptions
         |> List.indexedMap Tuple.pair
 
 
-selectedEntityWrapper : Model msg a -> (a -> Html msg) -> a -> Html msg
-selectedEntityWrapper model selectedViewFn entity =
+selectedEntityWrapper : Settings msg a -> Model a -> (a -> Html msg) -> a -> Html msg
+selectedEntityWrapper settings model selectedViewFn entity =
     div
-        [ class (classPrefix ++ "selected-entity-wrapper"), Events.stopPropagationOn "click" (Decode.succeed ( model.settings.internalMsg <| HandleDeselection <| List.filter (\e -> e /= entity) model.selected, True )) ]
+        [ class (classPrefix ++ "selected-entity-wrapper"), Events.stopPropagationOn "click" (Decode.succeed ( settings.internalMsg <| HandleDeselection <| List.filter (\e -> e /= entity) model.selected, True )) ]
         [ selectedViewFn entity ]
 
 
@@ -541,11 +538,12 @@ selectedEntityWrapper model selectedViewFn entity =
 
   - a boolean indicating if the select is disabled or not
   - a function that takes in an instance of the data being selected from and returns html for rendering selected items. This allows the end user to define how they would like to render selected items.
-  - the smart select instance
+  - the select settings
+  - the select instance
 
 -}
-view : Bool -> (a -> Html msg) -> SmartSelect msg a -> Html msg
-view isDisabled selectedViewFn (SmartSelect model) =
+view : Bool -> (a -> Html msg) -> Settings msg a -> SmartSelect a -> Html msg
+view isDisabled selectedViewFn settings (SmartSelect model) =
     if isDisabled then
         div
             [ id smartSelectId
@@ -563,8 +561,8 @@ view isDisabled selectedViewFn (SmartSelect model) =
     else
         div
             [ id smartSelectId
-            , onClick <| model.settings.internalMsg Open
-            , Events.preventDefaultOn "keydown" (keyActionMapper model)
+            , onClick <| settings.internalMsg Open
+            , Events.preventDefaultOn "keydown" (keyActionMapper settings model)
             , classList
                 [ ( String.join " " [ classPrefix ++ "selector-container", classPrefix ++ "multi-selector-container-min-height", classPrefix ++ "multi-bg-color" ], True )
                 , ( classPrefix ++ "enabled-closed", not model.isOpen )
@@ -580,17 +578,17 @@ view isDisabled selectedViewFn (SmartSelect model) =
                                 [ id "smart-select-input"
                                 , class (classPrefix ++ "multi-input")
                                 , autocomplete False
-                                , onInput <| \val -> model.settings.internalMsg <| SetSearchText val
+                                , onInput <| \val -> settings.internalMsg <| SetSearchText val
                                 ]
                                 []
                             ]
                          ]
-                            |> List.append (List.map (selectedEntityWrapper model selectedViewFn) model.selected)
+                            |> List.append (List.map (selectedEntityWrapper settings model selectedViewFn) model.selected)
                         )
 
                   else
                     div [ class (classPrefix ++ "multi-selected-container") ]
-                        (List.map (selectedEntityWrapper model selectedViewFn) model.selected)
+                        (List.map (selectedEntityWrapper settings model selectedViewFn) model.selected)
 
                 -- figure out alignment issue if possible instead of using 'left -1px'
                 , if model.isOpen then
@@ -602,7 +600,7 @@ view isDisabled selectedViewFn (SmartSelect model) =
                             , ( classPrefix ++ "invisible", model.selectWidth == 0 )
                             ]
                         ]
-                        [ viewRemoteData model ]
+                        [ viewRemoteData settings model ]
 
                   else
                     text ""

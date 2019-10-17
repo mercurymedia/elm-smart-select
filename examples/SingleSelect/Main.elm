@@ -14,7 +14,7 @@ type alias Product =
 
 
 type alias Model =
-    { select : SingleSelect.SmartSelect Msg Product
+    { select : SingleSelect.SmartSelect Product
     , products : List Product
     }
 
@@ -43,7 +43,7 @@ update msg model =
         HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelect.update sMsg model.select
+                    SingleSelect.update sMsg selectSettings model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
@@ -54,7 +54,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a single select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ SingleSelect.view False model.products model.select ]
+            [ SingleSelect.view False model.products selectSettings model.select ]
         ]
 
 
@@ -101,7 +101,7 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = SingleSelect.init selectSettings, products = exampleProducts }
+    ( { select = SingleSelect.init, products = exampleProducts }
     , Cmd.none
     )
 
@@ -109,7 +109,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ SingleSelect.subscriptions model.select ]
+        [ SingleSelect.subscriptions selectSettings model.select ]
 
 
 main : Program () Model Msg

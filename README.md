@@ -32,7 +32,7 @@ type alias Product =
 
 type alias Model =
     { products : List Product
-    , select : SingleSelect.SmartSelect Msg Product
+    , select : SingleSelect.SmartSelect Product
     }
 ```
 
@@ -61,13 +61,13 @@ selectSettings =
     }
 ```
 
-4. Initialize the select. The `init` function takes in the select settings. In the event you wish to `init` a select with a previously picked entity, simply pipe the result of the `init` to `SingleSelect.setSelected` passing the previous selection.
+4. Initialize the select. In the event you wish to `init` a select with a previously picked entity, simply pipe the result of the `init` to `SingleSelect.setSelected` passing the previous selection.
 
 ```elm
 init : ( Model, Cmd Msg )
 init =
     ( { products = products
-      , select = SingleSelect.init selectSettings
+      , select = SingleSelect.init
       }
     )
 
@@ -95,7 +95,7 @@ view model =
         [ ...
         , div
             [ style "width" "500px" ]
-            [ SingleSelect.view False model.products model.select ]
+            [ SingleSelect.view False model.products selectSettings model.select ]
         ]
 ```
 
@@ -110,7 +110,7 @@ update msg model =
         HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelect.update sMsg model.select
+                    SingleSelect.update sMsg selectSettings model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 ```
@@ -124,7 +124,7 @@ You might be wondering were the selected state is. The smart select stores the s
 ```elm
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    SingleSelect.subscriptions model.select
+    SingleSelect.subscriptions selectSettings model.select
 ```
 
 ## Examples

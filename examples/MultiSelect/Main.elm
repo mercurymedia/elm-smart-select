@@ -14,7 +14,7 @@ type alias Product =
 
 
 type alias Model =
-    { select : MultiSelect.SmartSelect Msg Product
+    { select : MultiSelect.SmartSelect Product
     , products : List Product
     }
 
@@ -43,7 +43,7 @@ update msg model =
         HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelect.update sMsg model.select
+                    MultiSelect.update sMsg selectSettings model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
@@ -60,7 +60,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ MultiSelect.view False model.products viewSelectedProduct model.select ]
+            [ MultiSelect.view False model.products viewSelectedProduct selectSettings model.select ]
         ]
 
 
@@ -107,7 +107,7 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = MultiSelect.init selectSettings, products = exampleProducts }
+    ( { select = MultiSelect.init, products = exampleProducts }
     , Cmd.none
     )
 
@@ -115,7 +115,7 @@ init _ =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ MultiSelect.subscriptions model.select ]
+        [ MultiSelect.subscriptions selectSettings model.select ]
 
 
 main : Program () Model Msg
