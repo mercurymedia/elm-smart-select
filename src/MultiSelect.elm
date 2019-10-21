@@ -12,11 +12,6 @@ module MultiSelect exposing
 @docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update
 
 
-# Settings and Configuration
-
-@docs Settings
-
-
 # Query
 
 @docs selected
@@ -392,6 +387,48 @@ view { options, optionLabelFn, viewSelectedOptionFn } smartSelect =
   - `viewSelectedOptionFn` takes a function that expects an instance of the data being selected from and returns html to render a selected option.
   - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
   - `searchFn` takes a function that expects the search text and the items to search and returns the filtered items.
+
+```elm
+import MultiSelect
+import Html exposing (Html, div)
+
+type Msg
+    = ...
+
+type alias Product =
+    { name : String
+    , description : String
+    , price : Float
+    }
+
+type alias Model =
+    { ...
+    , select : MultiSelect.SmartSelect Msg Product
+    , products : List Product
+    }
+
+viewSelectedProduct : Product -> Html Msg
+viewSelectedProduct product =
+    div []
+        [ text (product.name ++ " - " ++ ("$" ++ String.fromFloat product.price)) ]
+
+viewCustomProductSelect : Model -> Html Msg
+viewCustomProductSelect model =
+    MultiSelect.viewCustom
+        { isDisabled = False
+        , options = model.products
+        , optionType = "Product"
+        , optionLabelFn = .name
+        , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
+        , viewSelectedOptionFn = viewSelectedProduct
+        , optionsContainerMaxHeight = 500
+        , searchFn = \searchText allOptions ->
+            List.filter (\option ->
+                String.contains (String.toLower searchText) (String.toLower option.name) ||
+                String.contains (String.toLower searchText) (String.toLower option.description)
+            ) allOptions
+        }
+```
 
 -}
 viewCustom :

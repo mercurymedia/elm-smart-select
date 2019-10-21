@@ -557,6 +557,37 @@ view optionLabelFn smartSelect =
   - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
   - `spinnerColor` takes a `Color` for the loading spinner.
 
+```elm
+import SingleSelectRemote
+import Html exposing (Html)
+import Color
+
+type Msg
+    = ...
+
+type alias Product =
+    { name : String
+    , description : String
+    , price : Float
+    }
+
+type alias Model =
+    { ...
+    , select : SingleSelectRemote.SmartSelect Msg Product
+    }
+
+viewCustomProductSelect : Model -> Html Msg
+viewCustomProductSelect model =
+    SingleSelectRemote.viewCustom
+        { isDisabled = False
+        , optionType = "Product"
+        , optionLabelFn = .name
+        , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
+        , optionsContainerMaxHeight = 500
+        , spinnerColor = Color.rgb255 0 0 0
+        }
+```
+
 -}
 viewCustom :
     { isDisabled : Bool

@@ -368,6 +368,42 @@ view { options, optionLabelFn } smartSelect =
   - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
   - `searchFn` takes a function that expects the search text and the items to search and returns the filtered items.
 
+```elm
+import SingleSelect
+import Html exposing (Html)
+
+type Msg
+    = ...
+
+type alias Product =
+    { name : String
+    , description : String
+    , price : Float
+    }
+
+type alias Model =
+    { ...
+    , select : SingleSelect.SmartSelect Msg Product
+    , products : List Product
+    }
+
+viewCustomProductSelect : Model -> Html Msg
+viewCustomProductSelect model =
+    SingleSelect.viewCustom
+        { isDisabled = False
+        , options = model.products
+        , optionType = "Product"
+        , optionLabelFn = .name
+        , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
+        , optionsContainerMaxHeight = 500
+        , searchFn = \searchText allOptions ->
+            List.filter (\option ->
+                String.contains (String.toLower searchText) (String.toLower option.name) ||
+                String.contains (String.toLower searchText) (String.toLower option.description)
+            ) allOptions
+        }
+```
+
 -}
 viewCustom :
     { isDisabled : Bool

@@ -12,11 +12,6 @@ module MultiSelectRemote exposing
 @docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update
 
 
-# Settings and Configuration
-
-@docs Settings
-
-
 # Query
 
 @docs selected
@@ -583,6 +578,43 @@ view { optionLabelFn, viewSelectedOptionFn } smartSelect =
   - `viewSelectedOptionFn` takes a function that expects and instance of the data being selected from and returns html to render a selected option.
   - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
   - `spinnerColor` takes a `Color` for the loading spinner.
+
+```elm
+import MultiSelectRemote
+import Html exposing (Html)
+import Color
+
+type Msg
+    = ...
+
+type alias Product =
+    { name : String
+    , description : String
+    , price : Float
+    }
+
+type alias Model =
+    { ...
+    , select : MultiSelectRemote.SmartSelect Msg Product
+    }
+
+viewSelectedProduct : Product -> Html Msg
+viewSelectedProduct product =
+    div []
+        [ text (product.name ++ " - " ++ ("$" ++ String.fromFloat product.price)) ]
+
+viewCustomProductSelect : Model -> Html Msg
+viewCustomProductSelect model =
+    MultiSelectRemote.viewCustom
+        { isDisabled = False
+        , optionType = "Product"
+        , optionLabelFn = .name
+        , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
+        , viewSelectedOptionFn = viewSelecteProduct
+        , optionsContainerMaxHeight = 500
+        , spinnerColor = Color.rgb255 0 0 0
+        }
+```
 
 -}
 viewCustom :
