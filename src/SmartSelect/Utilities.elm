@@ -3,7 +3,7 @@ module SmartSelect.Utilities exposing
     , RemoteQueryAttrs
     , decodeOptions
     , eventIsOutsideComponent
-    , newFocusedIndexAfterSelection
+    , newFocusedOptionIndexAfterSelection
     , preventDefault
     , spinnerConfig
     , toKeyCode
@@ -75,8 +75,8 @@ eventIsOutsideComponent componentId =
         ]
 
 
-newFocusedIndexAfterSelection : Int -> Int
-newFocusedIndexAfterSelection currentFocusedIdx =
+newFocusedOptionIndexAfterSelection : Int -> Int
+newFocusedOptionIndexAfterSelection currentFocusedIdx =
     if currentFocusedIdx > 0 then
         currentFocusedIdx - 1
 

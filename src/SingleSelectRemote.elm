@@ -29,7 +29,7 @@ import Color
 import Debounce exposing (Debounce)
 import Dict
 import Html exposing (Html, div, input, span, text)
-import Html.Attributes exposing (autocomplete, class, classList, id, style)
+import Html.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
 import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Http
 import Json.Decode as Decode
@@ -55,7 +55,7 @@ type alias Model msg a =
     , spinner : Spinner.Model
     , selected : Maybe a
     , remoteData : RemoteData ( String, String ) (List a)
-    , focusedIndex : Int
+    , focusedOptionIndex : Int
     , internalMsg : Msg a -> msg
     , characterSearchThreshold : Int
     , debounceDuration : Float
@@ -98,7 +98,7 @@ init { internalMsg, characterSearchThreshold, debounceDuration } =
         , spinner = Spinner.init
         , selected = Nothing
         , remoteData = NotAsked
-        , focusedIndex = 0
+        , focusedOptionIndex = 0
         , internalMsg = internalMsg
         , characterSearchThreshold = characterSearchThreshold
         , debounceDuration = debounceDuration
@@ -150,8 +150,8 @@ clickedOutsideSelect componentId internalMsg =
             )
 
 
-keyActionMapper : { remoteData : RemoteData ( String, String ) (List a), selectedOption : Maybe a, focusedIndex : Int, internalMsg : Msg a -> msg } -> Decode.Decoder ( msg, Bool )
-keyActionMapper { remoteData, selectedOption, focusedIndex, internalMsg } =
+keyActionMapper : { remoteData : RemoteData ( String, String ) (List a), selectedOption : Maybe a, focusedOptionIndex : Int, internalMsg : Msg a -> msg } -> Decode.Decoder ( msg, Bool )
+keyActionMapper { remoteData, selectedOption, focusedOptionIndex, internalMsg } =
     let
         filteredOptions =
             case remoteData of
@@ -169,27 +169,27 @@ keyActionMapper { remoteData, selectedOption, focusedIndex, internalMsg } =
                     Up ->
                         let
                             newIdx =
-                                if focusedIndex - 1 < 0 then
+                                if focusedOptionIndex - 1 < 0 then
                                     0
 
                                 else
-                                    focusedIndex - 1
+                                    focusedOptionIndex - 1
                         in
                         ( internalMsg <| UpKeyPressed newIdx, Utilities.preventDefault key )
 
                     Down ->
                         let
                             newIdx =
-                                if focusedIndex + 1 > (List.length filteredOptions - 1) then
+                                if focusedOptionIndex + 1 > (List.length filteredOptions - 1) then
                                     List.length filteredOptions - 1
 
                                 else
-                                    focusedIndex + 1
+                                    focusedOptionIndex + 1
                         in
                         ( internalMsg <| DownKeyPressed newIdx, Utilities.preventDefault key )
 
                     Enter ->
-                        case Dict.get focusedIndex (Dict.fromList filteredOptions) of
+                        case Dict.get focusedOptionIndex (Dict.fromList filteredOptions) of
                             Just item ->
                                 ( internalMsg <| HandleSelection item, Utilities.preventDefault key )
 
@@ -243,16 +243,16 @@ update msg remoteQueryAttrs (SmartSelect model) =
             ( SmartSelect model, Cmd.none )
 
         SetFocused idx ->
-            ( SmartSelect { model | focusedIndex = idx }, Cmd.none )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Cmd.none )
 
         HandleSelection newSelected ->
             ( SmartSelect { model | isOpen = False, searchText = "", selected = Just newSelected, remoteData = NotAsked }, Cmd.none )
 
         UpKeyPressed idx ->
-            ( SmartSelect { model | focusedIndex = idx }, scrollToOption model.internalMsg idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg idx )
 
         DownKeyPressed idx ->
-            ( SmartSelect { model | focusedIndex = idx }, scrollToOption model.internalMsg idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg idx )
 
         SetSearchText text ->
             if String.length text < model.characterSearchThreshold then
@@ -288,7 +288,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
             )
 
         GotRemoteData data ->
-            ( SmartSelect { model | focusedIndex = 0, remoteData = RemoteData.mapError (Errors.httpErrorToReqErrTuple "GET") data }, Cmd.none )
+            ( SmartSelect { model | focusedOptionIndex = 0, remoteData = RemoteData.mapError (Errors.httpErrorToReqErrTuple "GET") data }, Cmd.none )
 
         WindowResized _ ->
             ( SmartSelect model, getSelectWidth model.internalMsg )
@@ -322,7 +322,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
                     else
                         Cmd.batch [ getSelectWidth model.internalMsg, focusInput model.internalMsg ]
             in
-            ( SmartSelect { model | isOpen = True, focusedIndex = 0 }, cmd )
+            ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }, cmd )
 
         Close ->
             ( SmartSelect { model | isOpen = False, searchText = "", remoteData = NotAsked }, Cmd.none )
@@ -402,21 +402,22 @@ showSpinner { spinner, spinnerColor } =
 
 showOptions :
     { internalMsg : Msg a -> msg
-    , focusedIndex : Int
+    , focusedOptionIndex : Int
     , searchText : String
     , options : List ( Int, a )
-    , optionType : String
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , optionsContainerMaxHeight : Float
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
     }
     -> Html msg
-showOptions { internalMsg, focusedIndex, searchText, options, optionType, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight } =
+showOptions { internalMsg, focusedOptionIndex, searchText, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg } =
     if List.isEmpty options && searchText /= "" then
-        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No results found for: " ++ searchText) ]
+        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text <| noResultsForMsg searchText ]
 
     else if List.isEmpty options then
-        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text ("No " ++ optionType ++ "s are available") ]
+        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text noOptionsMsg ]
 
     else
         div [ class (classPrefix ++ "select-options-container"), style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px"), style "overflow" "auto" ]
@@ -427,14 +428,14 @@ showOptions { internalMsg, focusedIndex, searchText, options, optionType, option
                         , onMouseEnter <| internalMsg <| SetFocused idx
                         , id <| optionId idx
                         , classList
-                            [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == focusedIndex ) ]
+                            [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == focusedOptionIndex ) ]
                         ]
                         [ div [] [ text (optionLabelFn option) ]
                         , div
                             [ classList
                                 [ ( classPrefix ++ "select-option-description", True )
-                                , ( classPrefix ++ "select-option-description-unfocused", idx /= focusedIndex )
-                                , ( classPrefix ++ "select-option-description-focused", idx == focusedIndex )
+                                , ( classPrefix ++ "select-option-description-unfocused", idx /= focusedOptionIndex )
+                                , ( classPrefix ++ "select-option-description-focused", idx == focusedOptionIndex )
                                 ]
                             ]
                             [ text (optionDescriptionFn option) ]
@@ -446,20 +447,23 @@ showOptions { internalMsg, focusedIndex, searchText, options, optionType, option
 
 viewRemoteData :
     { internalMsg : Msg a -> msg
-    , focusedIndex : Int
+    , focusedOptionIndex : Int
     , characterSearchThreshold : Int
     , searchText : String
     , selectedOption : Maybe a
     , remoteData : RemoteData ( String, String ) (List a)
-    , optionType : String
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , optionsContainerMaxHeight : Float
     , spinner : Spinner.Model
     , spinnerColor : Color.Color
+    , characterThresholdPrompt : Int -> String
+    , queryErrorMsg : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
     }
     -> Html msg
-viewRemoteData { internalMsg, focusedIndex, characterSearchThreshold, searchText, selectedOption, remoteData, optionType, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor } =
+viewRemoteData { internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOption, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } =
     case remoteData of
         NotAsked ->
             if characterSearchThreshold == 0 then
@@ -471,14 +475,11 @@ viewRemoteData { internalMsg, focusedIndex, characterSearchThreshold, searchText
                         characterSearchThreshold - String.length searchText
 
                     searchPrompt =
-                        if characterSearchThreshold > 0 && difference == 0 then
+                        if difference == 0 then
                             showSpinner { spinner = spinner, spinnerColor = spinnerColor }
 
-                        else if difference > 1 then
-                            div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter " ++ String.fromInt difference ++ " more characters to search for a " ++ String.toLower optionType ]
-
                         else
-                            div [ class (classPrefix ++ "search-prompt") ] [ text <| "Please enter 1 more character to search for a " ++ String.toLower optionType ]
+                            div [ class (classPrefix ++ "search-prompt") ] [ text <| characterThresholdPrompt difference ]
                 in
                 div [ class (classPrefix ++ "search-prompt-container") ] [ searchPrompt ]
 
@@ -488,22 +489,21 @@ viewRemoteData { internalMsg, focusedIndex, characterSearchThreshold, searchText
         Success options ->
             showOptions
                 { internalMsg = internalMsg
-                , focusedIndex = focusedIndex
+                , focusedOptionIndex = focusedOptionIndex
                 , searchText = searchText
                 , options = filterAndIndexOptions { allOptions = options, selectedOption = selectedOption }
-                , optionType = optionType
                 , optionLabelFn = optionLabelFn
                 , optionDescriptionFn = optionDescriptionFn
                 , optionsContainerMaxHeight = optionsContainerMaxHeight
+                , noResultsForMsg = noResultsForMsg
+                , noOptionsMsg = noOptionsMsg
                 }
 
-        Failure ( requestDecorator, errMsg ) ->
+        Failure _ ->
             div [ class (classPrefix ++ "error-box-container") ]
                 [ div [ class (classPrefix ++ "error-box") ]
                     [ div [ class (classPrefix ++ "error-container") ]
-                        [ div [ class (classPrefix ++ "request-decorator") ] [ text requestDecorator ]
-                        , div [] [ text errMsg ]
-                        ]
+                        [ text queryErrorMsg ]
                     , span
                         [ class (classPrefix ++ "dismiss-error-x")
                         , onClick <| internalMsg DismissError
@@ -538,11 +538,16 @@ view optionLabelFn smartSelect =
     let
         config =
             { isDisabled = False
-            , optionType = "Option"
             , optionLabelFn = optionLabelFn
             , optionDescriptionFn = \_ -> ""
             , optionsContainerMaxHeight = 300
             , spinnerColor = Color.rgb255 57 179 181
+            , selectTitle = ""
+            , searchPrompt = ""
+            , characterThresholdPrompt = \_ -> ""
+            , queryErrorMsg = ""
+            , noResultsForMsg = \_ -> ""
+            , noOptionsMsg = ""
             }
     in
     viewCustom config smartSelect
@@ -551,11 +556,16 @@ view optionLabelFn smartSelect =
 {-| The customizable smart select view for selecting one option at a time with remote data. It expects the following arguments (in order):
 
   - `isDisabled` takes a boolean that indicates whether or not the select can be opened.
-  - `optionType` takes a string that indicates what kind of data is being selected, i.e. "Product" or "Client".
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
   - `optionDescriptionFn` takes a function that expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft".
   - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
   - `spinnerColor` takes a `Color` for the loading spinner.
+  - `selectTitle` takes a string to label the select in its closed state and non-selected state.
+  - `searchPrompt` takes a string to indicate what is being searched for.
+  - `characterThresholdPrompt` takes a function that expects an int and returns a string indicating how many more characters need to be entered to trigger the query.
+  - `queryErrorMsg` takes a string to indicate that an error has occured while querying data.
+  - `noResultsForMsg` takes a function that expects a string and returns a message indicating that the search for the provided string returned no results.
+  - `noOptionsMsg` takes a string to indicate that no options exist in the select.
 
 ```elm
 import SingleSelectRemote
@@ -580,29 +590,48 @@ viewCustomProductSelect : Model -> Html Msg
 viewCustomProductSelect model =
     SingleSelectRemote.viewCustom
         { isDisabled = False
-        , optionType = "Product"
         , optionLabelFn = .name
         , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
         , optionsContainerMaxHeight = 500
         , spinnerColor = Color.rgb255 0 0 0
+        , selectTitle = "Select a Product"
+        , searchPrompt = "Search for a Product"
+        , characterThresholdPrompt =
+            \difference ->
+                if difference > 1 then
+                    "Please enter " ++ String.fromInt difference ++ " more characters to search for a Product"
+
+                else if difference == 1 then
+                    "Please enter 1 more character to search for a Product"
+
+                else
+                    ""
+        , queryErrorMsg = "An error occured while querying Products"
+        , noResultsForMsg = \searchText -> "No results found for: " ++ searchText
+        , noOptionsMsg = "There are no options to select"
         }
 ```
 
 -}
 viewCustom :
     { isDisabled : Bool
-    , optionType : String
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , optionsContainerMaxHeight : Float
     , spinnerColor : Color.Color
+    , selectTitle : String
+    , searchPrompt : String
+    , characterThresholdPrompt : Int -> String
+    , queryErrorMsg : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, optionType, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor } (SmartSelect model) =
+viewCustom { isDisabled, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, selectTitle, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     let
         selectedLabel =
-            Maybe.map (\s -> optionLabelFn s) model.selected |> Maybe.withDefault optionType
+            Maybe.map (\s -> optionLabelFn s) model.selected |> Maybe.withDefault selectTitle
     in
     if isDisabled then
         div
@@ -626,7 +655,7 @@ viewCustom { isDisabled, optionType, optionLabelFn, optionDescriptionFn, options
                 (keyActionMapper
                     { remoteData = model.remoteData
                     , selectedOption = model.selected
-                    , focusedIndex = model.focusedIndex
+                    , focusedOptionIndex = model.focusedOptionIndex
                     , internalMsg = model.internalMsg
                     }
                 )
@@ -645,20 +674,32 @@ viewCustom { isDisabled, optionType, optionLabelFn, optionDescriptionFn, options
                         ]
                         [ div
                             [ class (classPrefix ++ "single-selector-input-container") ]
-                            [ input [ id "smart-select-input", class (classPrefix ++ "single-selector-input"), autocomplete False, onInput <| \val -> model.internalMsg <| SetSearchText val ] [] ]
+                            [ input
+                                [ id "smart-select-input"
+                                , class (classPrefix ++ "single-selector-input")
+                                , autocomplete False
+                                , onInput <| \val -> model.internalMsg <| SetSearchText val
+                                , placeholder <| searchPrompt
+                                , value model.searchText
+                                ]
+                                []
+                            ]
                         , viewRemoteData
                             { internalMsg = model.internalMsg
-                            , focusedIndex = model.focusedIndex
+                            , focusedOptionIndex = model.focusedOptionIndex
                             , characterSearchThreshold = model.characterSearchThreshold
                             , searchText = model.searchText
                             , selectedOption = model.selected
                             , remoteData = model.remoteData
-                            , optionType = optionType
                             , optionLabelFn = optionLabelFn
                             , optionDescriptionFn = optionDescriptionFn
                             , optionsContainerMaxHeight = optionsContainerMaxHeight
                             , spinner = model.spinner
                             , spinnerColor = spinnerColor
+                            , characterThresholdPrompt = characterThresholdPrompt
+                            , queryErrorMsg = queryErrorMsg
+                            , noResultsForMsg = noResultsForMsg
+                            , noOptionsMsg = noOptionsMsg
                             }
                         ]
 
