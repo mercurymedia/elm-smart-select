@@ -8,6 +8,7 @@
 
 .elm-smart-select--selector-container {
     width: 100%;
+    min-height: 1.5rem;
 }
 
 .elm-smart-select--multi-selector-container-min-height {
@@ -175,10 +176,6 @@
 .elm-smart-select--error-container {
     flex-wrap: wrap;
     margin-right: 1rem;
-}
-
-.elm-smart-select--request-decorator {
-    padding-bottom: 0.25rem;
 }
 
 .elm-smart-select--dismiss-error-x {

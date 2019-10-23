@@ -19,20 +19,6 @@ type alias Model =
     }
 
 
-selectSettings : SingleSelect.Settings Msg Product
-selectSettings =
-    { internalMsg = \msg -> HandleSelectUpdate msg
-    , searchFn =
-        \searchText products ->
-            List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
-    , optionType = "Product"
-    , optionLabelFn = .name
-    , optionDescriptionFn = .price
-    , optionsContainerMaxHeight = 300
-    , closeOnSelect = True
-    }
-
-
 type Msg
     = HandleSelectUpdate (SingleSelect.Msg Product)
 
@@ -54,7 +40,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a single select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ SingleSelect.view False model.products model.select ]
+            [ SingleSelect.view { options = model.products, optionLabelFn = .name } model.select ]
         ]
 
 
@@ -101,15 +87,16 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = SingleSelect.init selectSettings, products = exampleProducts }
+    ( { select = SingleSelect.init (\msg -> HandleSelectUpdate msg)
+      , products = exampleProducts
+      }
     , Cmd.none
     )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ SingleSelect.subscriptions model.select ]
+    SingleSelect.subscriptions model.select
 
 
 main : Program () Model Msg

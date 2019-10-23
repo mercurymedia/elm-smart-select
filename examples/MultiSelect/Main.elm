@@ -19,20 +19,6 @@ type alias Model =
     }
 
 
-selectSettings : MultiSelect.Settings Msg Product
-selectSettings =
-    { internalMsg = \msg -> HandleSelectUpdate msg
-    , searchFn =
-        \searchText products ->
-            List.filter (\product -> String.contains (String.toLower searchText) (String.toLower product.name)) products
-    , optionType = "Product"
-    , optionLabelFn = .name
-    , optionDescriptionFn = .price
-    , optionsContainerMaxHeight = 300
-    , closeOnSelect = False
-    }
-
-
 type Msg
     = HandleSelectUpdate (MultiSelect.Msg Product)
 
@@ -60,7 +46,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ MultiSelect.view False model.products viewSelectedProduct model.select ]
+            [ MultiSelect.view { options = model.products, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedProduct } model.select ]
         ]
 
 
@@ -107,15 +93,16 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = MultiSelect.init selectSettings, products = exampleProducts }
+    ( { select = MultiSelect.init (\msg -> HandleSelectUpdate msg)
+      , products = exampleProducts
+      }
     , Cmd.none
     )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ MultiSelect.subscriptions model.select ]
+    MultiSelect.subscriptions model.select
 
 
 main : Program () Model Msg

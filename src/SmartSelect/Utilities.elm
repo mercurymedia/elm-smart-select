@@ -1,9 +1,9 @@
 module SmartSelect.Utilities exposing
     ( KeyCode(..)
-    , RemoteSearchAttrs
+    , RemoteQueryAttrs
     , decodeOptions
     , eventIsOutsideComponent
-    , newFocusedIndexAfterSelection
+    , newFocusedOptionIndexAfterSelection
     , preventDefault
     , spinnerConfig
     , toKeyCode
@@ -26,7 +26,7 @@ import Spinner
 
 {-| Fields to be provided to facilitate the external request. The function provided to url takes in searchText in the event it is necessary for the query.
 -}
-type alias RemoteSearchAttrs a =
+type alias RemoteQueryAttrs a =
     { headers : List Header
     , url : String -> String
     , optionDecoder : Decoder a
@@ -75,8 +75,8 @@ eventIsOutsideComponent componentId =
         ]
 
 
-newFocusedIndexAfterSelection : Int -> Int
-newFocusedIndexAfterSelection currentFocusedIdx =
+newFocusedOptionIndexAfterSelection : Int -> Int
+newFocusedOptionIndexAfterSelection currentFocusedIdx =
     if currentFocusedIdx > 0 then
         currentFocusedIdx - 1
 
