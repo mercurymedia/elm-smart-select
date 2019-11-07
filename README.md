@@ -33,26 +33,29 @@ type alias Product =
 type alias Model =
     { products : List Product
     , select : SingleSelect.SmartSelect Msg Product
+    , selectedProduct : Maybe Product
     }
 ```
 
-2. Define a `Msg` to handle updates from the select.
+2. Define two `Msg`s: one to handle updates internal to the select and one to handle receiving a selection from the select.
 
 ```elm
 type Msg
-    = ...
-    | HandleSelectUpdate (SingleSelect.Msg Product)
+    = HandleSelectUpdate (SingleSelect.Msg Product)
+    | HandleSelection ( Product, SingleSelect.Msg )
 ```
 
-3. Initialize the select. Here is where the configuration for the `SmartSelect` takes place. As noted above, please refer to documentation for the specific arguments that the `init` function of a particular module takes.
-
-In the event you wish to `init` a select with a previously picked entity, simply pipe the result of the `init` to `SingleSelect.setSelected` passing the previous selection.
+3. Initialize the select. As noted above, please refer to documentation for the specific arguments that the `init` function of a particular module takes.
 
 ```elm
 init : ( Model, Cmd Msg )
 init =
     ( { products = products
-      , select = SingleSelect.init (\msg -> HandleSelectUpdate msg)
+      , select = SingleSelect.init
+            { selectionMsg = HandleSelection
+            , internalMsg = HandleSelectUpdate
+            }
+      , selectedProduct = Nothing
       }
     )
 
@@ -82,11 +85,11 @@ view model =
         [ ...
         , div
             [ style "width" "500px" ]
-            [ SingleSelect.view { options = model.products, optionLabelFn = .name } model.select ]
+            [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
         ]
 ```
 
-5. Update the select. Here is where we handle the `Msg` we defined in step 2. As indicated before, the message carries with it a `SingleSelect.Msg` for updating the select component. 
+5. Update the select. Here is where we handle the `Msg`s we defined in step 2. 
 
 ```elm
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -100,11 +103,16 @@ update msg model =
                     SingleSelect.update sMsg model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
+
+        HandleSelection ( product, sMsg ) ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    SingleSelect.update sMsg model.select
+            in
+            ( { model | selectedProduct = product, select = updatedSelect }, selectCmd )
 ```
 
 `SingleSelect.upate` returns an updated smart select instance and a cmd.
-
-You might be wondering were the selected state is. The smart select stores the select state and exposes a `selected` method to retrieve it. Call this method when you need the selected entity/entities.
 
 6. Setup the select subscription. The select module uses a subscription to determine when to close (outside of a selection). Wire the picker subscription like below.
 
