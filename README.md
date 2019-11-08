@@ -128,4 +128,4 @@ Examples can be found in the [examples](https://github.com/mercurymedia/elm-smar
 
 ## CSS
 
-The CSS for the date picker is distributed separately and can be found [here](https://github.com/mercurymedia/elm-smart-select/tree/master/css)
+The CSS for smart select is distributed separately and can be found [here](https://github.com/mercurymedia/elm-smart-select/tree/master/css)
