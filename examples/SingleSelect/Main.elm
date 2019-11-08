@@ -14,13 +14,15 @@ type alias Product =
 
 
 type alias Model =
-    { select : SingleSelect.SmartSelect Msg Product
-    , products : List Product
+    { products : List Product
+    , select : SingleSelect.SmartSelect Msg Product
+    , selectedProduct : Maybe Product
     }
 
 
 type Msg
     = HandleSelectUpdate (SingleSelect.Msg Product)
+    | HandleSelection ( Product, SingleSelect.Msg Product )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -33,6 +35,13 @@ update msg model =
             in
             ( { model | select = updatedSelect }, selectCmd )
 
+        HandleSelection ( selection, sMsg ) ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    SingleSelect.update sMsg model.select
+            in
+            ( { model | selectedProduct = Just selection, select = updatedSelect }, selectCmd )
+
 
 view : Model -> Html Msg
 view model =
@@ -40,7 +49,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a single select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ SingleSelect.view { options = model.products, optionLabelFn = .name } model.select ]
+            [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
         ]
 
 
@@ -87,8 +96,13 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = SingleSelect.init (\msg -> HandleSelectUpdate msg)
-      , products = exampleProducts
+    ( { products = exampleProducts
+      , select =
+            SingleSelect.init
+                { selectionMsg = HandleSelection
+                , internalMsg = HandleSelectUpdate
+                }
+      , selectedProduct = Nothing
       }
     , Cmd.none
     )

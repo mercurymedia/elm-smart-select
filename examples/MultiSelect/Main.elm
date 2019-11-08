@@ -14,13 +14,15 @@ type alias Product =
 
 
 type alias Model =
-    { select : MultiSelect.SmartSelect Msg Product
-    , products : List Product
+    { products : List Product
+    , select : MultiSelect.SmartSelect Msg Product
+    , selectedProducts : List Product
     }
 
 
 type Msg
     = HandleSelectUpdate (MultiSelect.Msg Product)
+    | HandleSelection ( List Product, MultiSelect.Msg Product )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -32,6 +34,13 @@ update msg model =
                     MultiSelect.update sMsg model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
+
+        HandleSelection ( selection, sMsg ) ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    MultiSelect.update sMsg model.select
+            in
+            ( { model | selectedProducts = selection, select = updatedSelect }, selectCmd )
 
 
 viewSelectedProduct : Product -> Html Msg
@@ -46,7 +55,7 @@ view model =
         [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi select with local search" ]
         , div
             [ style "width" "500px" ]
-            [ MultiSelect.view { options = model.products, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedProduct } model.select ]
+            [ MultiSelect.view { selected = model.selectedProducts, options = model.products, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedProduct } model.select ]
         ]
 
 
@@ -93,8 +102,13 @@ exampleProducts =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { select = MultiSelect.init (\msg -> HandleSelectUpdate msg)
-      , products = exampleProducts
+    ( { products = exampleProducts
+      , select =
+            MultiSelect.init
+                { selectionMsg = HandleSelection
+                , internalMsg = HandleSelectUpdate
+                }
+      , selectedProducts = []
       }
     , Cmd.none
     )
