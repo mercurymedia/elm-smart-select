@@ -210,7 +210,7 @@ update : Msg a -> RemoteQueryAttrs a -> SmartSelect msg a -> ( SmartSelect msg a
 update msg remoteQueryAttrs (SmartSelect model) =
     case msg of
         NoOp ->
-            ( SmartSelect model, focusInput model.internalMsg )
+            ( SmartSelect model, Cmd.none )
 
         SetFocused idx ->
             ( SmartSelect { model | focusedOptionIndex = idx }, focusInput model.internalMsg )
