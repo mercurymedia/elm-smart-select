@@ -644,6 +644,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsCo
                 , ( classPrefix ++ "enabled-opened", model.isOpen )
                 ]
             , onClick <| model.internalMsg Open
+            , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
             , Events.preventDefaultOn "keydown"
                 (keyActionMapper
                     { remoteData = model.remoteData

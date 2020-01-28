@@ -1,6 +1,7 @@
 module SmartSelect.Utilities exposing
     ( KeyCode(..)
     , RemoteQueryAttrs
+    , alwaysStopPropogation
     , decodeOptions
     , eventIsOutsideComponent
     , newFocusedOptionIndexAfterSelection
@@ -95,6 +96,11 @@ type KeyCode
 preventDefault : KeyCode -> Bool
 preventDefault key =
     key == Up || key == Down
+
+
+alwaysStopPropogation : msg -> ( msg, Bool )
+alwaysStopPropogation msg =
+    ( msg, True )
 
 
 toKeyCode : String -> KeyCode

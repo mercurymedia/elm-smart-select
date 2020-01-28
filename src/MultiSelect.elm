@@ -478,6 +478,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
         div
             [ id smartSelectId
             , onClick <| model.internalMsg Open
+            , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
             , Events.preventDefaultOn "keydown"
                 (keyActionMapper
                     { options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
