@@ -676,6 +676,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
         div
             [ id smartSelectId
             , onClick <| model.internalMsg Open
+            , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
             , Events.preventDefaultOn "keydown"
                 (keyActionMapper
                     { remoteData = model.remoteData

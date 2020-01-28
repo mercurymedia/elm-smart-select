@@ -1,8 +1,9 @@
 module SingleSelect.Main exposing (main)
 
 import Browser
-import Html exposing (Html, div, text)
+import Html exposing (Html, button, div, form, input, text)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onSubmit)
 import SingleSelect
 
 
@@ -17,12 +18,14 @@ type alias Model =
     { products : List Product
     , select : SingleSelect.SmartSelect Msg Product
     , selectedProduct : Maybe Product
+    , wasFormSubmitted : Bool
     }
 
 
 type Msg
     = HandleSelectUpdate (SingleSelect.Msg Product)
     | HandleSelection ( Product, SingleSelect.Msg Product )
+    | HandleFormSubmission
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -42,14 +45,30 @@ update msg model =
             in
             ( { model | selectedProduct = Just selection, select = updatedSelect }, selectCmd )
 
+        HandleFormSubmission ->
+            ( { model | wasFormSubmitted = True }, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ div [ style "padding-bottom" "1rem" ] [ text "This is a single select with local search" ]
-        , div
-            [ style "width" "500px" ]
-            [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
+        [ div [ style "margin-bottom" "1rem" ] [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
+        , div [ style "margin-bottom" "1rem" ]
+            [ text
+                (if model.wasFormSubmitted then
+                    "Form submitted!"
+
+                 else
+                    "Press 'Enter' from input field or push the button below to submit form."
+                )
+            ]
+        , form [ onSubmit HandleFormSubmission ]
+            [ input [ style "margin-bottom" "1rem" ] []
+            , div
+                [ style "width" "500px", style "margin-bottom" "1rem" ]
+                [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
+            , button [] [ text "Submit" ]
+            ]
         ]
 
 
@@ -103,6 +122,7 @@ init _ =
                 , internalMsg = HandleSelectUpdate
                 }
       , selectedProduct = Nothing
+      , wasFormSubmitted = False
       }
     , Cmd.none
     )

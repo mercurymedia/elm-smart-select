@@ -1,8 +1,9 @@
 module MultiSelect.Main exposing (main)
 
 import Browser
-import Html exposing (Html, div, text)
+import Html exposing (Html, button, div, form, input, text)
 import Html.Attributes exposing (style)
+import Html.Events exposing (onSubmit)
 import MultiSelect
 
 
@@ -17,12 +18,14 @@ type alias Model =
     { products : List Product
     , select : MultiSelect.SmartSelect Msg Product
     , selectedProducts : List Product
+    , wasFormSubmitted : Bool
     }
 
 
 type Msg
     = HandleSelectUpdate (MultiSelect.Msg Product)
     | HandleSelection ( List Product, MultiSelect.Msg Product )
+    | HandleFormSubmission
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -42,6 +45,9 @@ update msg model =
             in
             ( { model | selectedProducts = selection, select = updatedSelect }, selectCmd )
 
+        HandleFormSubmission ->
+            ( { model | wasFormSubmitted = True }, Cmd.none )
+
 
 viewSelectedProduct : Product -> Html Msg
 viewSelectedProduct product =
@@ -52,10 +58,23 @@ viewSelectedProduct product =
 view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ div [ style "padding-bottom" "1rem" ] [ text "This is a multi select with local search" ]
-        , div
-            [ style "width" "500px" ]
-            [ MultiSelect.view { selected = model.selectedProducts, options = model.products, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedProduct } model.select ]
+        [ div [ style "margin-bottom" "1rem" ] [ text "This form contains a multi select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
+        , div [ style "margin-bottom" "1rem" ]
+            [ text
+                (if model.wasFormSubmitted then
+                    "Form submitted!"
+
+                 else
+                    "Press 'Enter' from input field or push the button below to submit form."
+                )
+            ]
+        , form [ onSubmit HandleFormSubmission ]
+            [ input [ style "margin-bottom" "1rem" ] []
+            , div
+                [ style "width" "500px", style "margin-bottom" "1rem" ]
+                [ MultiSelect.view { selected = model.selectedProducts, options = model.products, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedProduct } model.select ]
+            , button [] [ text "Submit" ]
+            ]
         ]
 
 
@@ -109,6 +128,7 @@ init _ =
                 , internalMsg = HandleSelectUpdate
                 }
       , selectedProducts = []
+      , wasFormSubmitted = False
       }
     , Cmd.none
     )
