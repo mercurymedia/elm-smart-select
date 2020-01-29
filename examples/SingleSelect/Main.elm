@@ -2,7 +2,7 @@ module SingleSelect.Main exposing (main)
 
 import Browser
 import Html exposing (Html, button, div, form, input, text)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, id)
 import Html.Events exposing (onSubmit)
 import SingleSelect
 
@@ -53,7 +53,7 @@ view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
         [ div [ style "margin-bottom" "1rem" ] [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
-        , div [ style "margin-bottom" "1rem" ]
+        , div [ id "form-submission-status", style "margin-bottom" "1rem" ]
             [ text
                 (if model.wasFormSubmitted then
                     "Form submitted!"

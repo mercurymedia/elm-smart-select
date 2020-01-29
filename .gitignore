@@ -3,3 +3,10 @@
 
 # compiled example.js files
 /examples/Compiled/
+
+# node modules
+/node_modules
+
+# Cypress
+/cypress/videos
+/cypress/screenshots
