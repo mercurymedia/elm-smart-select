@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "cypress run",
+    "cypress:open": "cypress open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mercurymedia/elm-smart-select.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mercurymedia/elm-smart-select/issues"
+  },
+  "homepage": "https://github.com/mercurymedia/elm-smart-select#readme",
+  "devDependencies": {
+    "cypress": "^3.8.3"
+  }
+}
