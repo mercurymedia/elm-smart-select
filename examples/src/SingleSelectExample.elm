@@ -127,6 +127,7 @@ init =
             SingleSelect.init
                 { selectionMsg = HandleSelection
                 , internalMsg = HandleSelectUpdate
+                , idPrefix = "single-select"
                 }
       , selectedProduct = Nothing
       , wasFormSubmitted = False

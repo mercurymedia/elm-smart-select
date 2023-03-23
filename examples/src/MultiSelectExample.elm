@@ -133,6 +133,7 @@ init =
             MultiSelect.init
                 { selectionMsg = HandleSelection
                 , internalMsg = HandleSelectUpdate
+                , idPrefix = "multi-select"
                 }
       , selectedProducts = []
       , wasFormSubmitted = False

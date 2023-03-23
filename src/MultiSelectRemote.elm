@@ -33,6 +33,10 @@ type SmartSelect msg a
     = SmartSelect (Model msg a)
 
 
+type Prefix
+    = Prefix String
+
+
 type alias Model msg a =
     { selectWidth : Float
     , isOpen : Bool
@@ -45,6 +49,7 @@ type alias Model msg a =
     , internalMsg : Msg a -> msg
     , characterSearchThreshold : Int
     , debounceDuration : Float
+    , idPrefix : Prefix
     }
 
 
@@ -74,8 +79,8 @@ type Msg a
   - `debounceDuration` takes a float that specifies the duration in milliseconds between the last keypress and remote query being triggered.
 
 -}
-init : { selectionMsg : ( List a, Msg a ) -> msg, internalMsg : Msg a -> msg, characterSearchThreshold : Int, debounceDuration : Float } -> SmartSelect msg a
-init { selectionMsg, internalMsg, characterSearchThreshold, debounceDuration } =
+init : { selectionMsg : ( List a, Msg a ) -> msg, internalMsg : Msg a -> msg, characterSearchThreshold : Int, debounceDuration : Float, idPrefix : String } -> SmartSelect msg a
+init { selectionMsg, internalMsg, characterSearchThreshold, debounceDuration, idPrefix } =
     SmartSelect
         { selectWidth = 0
         , isOpen = False
@@ -88,12 +93,23 @@ init { selectionMsg, internalMsg, characterSearchThreshold, debounceDuration } =
         , internalMsg = internalMsg
         , characterSearchThreshold = characterSearchThreshold
         , debounceDuration = debounceDuration
+        , idPrefix = Prefix idPrefix
         }
 
 
-smartSelectId : String
-smartSelectId =
-    "smart-select-component"
+smartSelectId : Prefix -> String
+smartSelectId (Prefix prefix) =
+    prefix ++ "-smart-select-component"
+
+
+smartSelectInputId : Prefix -> String
+smartSelectInputId (Prefix prefix) =
+    prefix ++ "-smart-select-input"
+
+
+optionId : Prefix -> Int -> String
+optionId (Prefix prefix) idx =
+    prefix ++ "-option-" ++ String.fromInt idx
 
 
 {-| Events external to the smart select to which it is subscribed.
@@ -116,7 +132,7 @@ subscriptions (SmartSelect model) =
 
                 _ ->
                     Sub.none
-            , Browser.Events.onMouseDown (clickedOutsideSelect smartSelectId model.internalMsg)
+            , Browser.Events.onMouseDown (clickedOutsideSelect (smartSelectId model.idPrefix) model.internalMsg)
             ]
 
     else
@@ -213,13 +229,13 @@ update msg remoteQueryAttrs (SmartSelect model) =
             ( SmartSelect model, Cmd.none )
 
         SetFocused idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, focusInput model.internalMsg )
+            ( SmartSelect { model | focusedOptionIndex = idx }, focusInput model.idPrefix model.internalMsg )
 
         UpKeyPressed idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg model.idPrefix idx )
 
         DownKeyPressed idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg model.idPrefix idx )
 
         SetSearchText text ->
             if String.length text < model.characterSearchThreshold then
@@ -258,7 +274,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
             ( SmartSelect { model | focusedOptionIndex = 0, remoteData = RemoteData.mapError (Errors.httpErrorToReqErrTuple "GET") data }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getSelectWidth model.internalMsg )
+            ( SmartSelect model, getSelectWidth model.idPrefix model.internalMsg )
 
         MaybeGotSelect result ->
             case result of
@@ -267,7 +283,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
                         selectWidth =
                             component.element |> (\el -> el.width)
                     in
-                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.internalMsg )
+                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.idPrefix model.internalMsg )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
@@ -284,10 +300,10 @@ update msg remoteQueryAttrs (SmartSelect model) =
             let
                 cmd =
                     if model.characterSearchThreshold == 0 then
-                        Cmd.batch [ search { remoteQueryAttrs = remoteQueryAttrs, internalMsg = model.internalMsg } "", getSelectWidth model.internalMsg ]
+                        Cmd.batch [ search { remoteQueryAttrs = remoteQueryAttrs, internalMsg = model.internalMsg } "", getSelectWidth model.idPrefix model.internalMsg ]
 
                     else
-                        Cmd.batch [ getSelectWidth model.internalMsg, focusInput model.internalMsg ]
+                        Cmd.batch [ getSelectWidth model.idPrefix model.internalMsg, focusInput model.idPrefix model.internalMsg ]
             in
             ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }, cmd )
 
@@ -308,26 +324,26 @@ search { remoteQueryAttrs, internalMsg } searchText =
         }
 
 
-focusInput : (Msg a -> msg) -> Cmd msg
-focusInput internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus "smart-select-input")
+focusInput : Prefix -> (Msg a -> msg) -> Cmd msg
+focusInput prefix internalMsg =
+    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (smartSelectInputId prefix))
 
 
-getSelectWidth : (Msg a -> msg) -> Cmd msg
-getSelectWidth internalMsg =
-    Task.attempt (\select -> internalMsg <| MaybeGotSelect select) (Dom.getElement "smart-select-component")
+getSelectWidth : Prefix -> (Msg a -> msg) -> Cmd msg
+getSelectWidth prefix internalMsg =
+    Task.attempt (\select -> internalMsg <| MaybeGotSelect select) (Dom.getElement (smartSelectId prefix))
 
 
-scrollToOption : (Msg a -> msg) -> Int -> Cmd msg
-scrollToOption internalMsg idx =
-    Task.attempt (\_ -> internalMsg NoOp) (scrollTask idx)
+scrollToOption : (Msg a -> msg) -> Prefix -> Int -> Cmd msg
+scrollToOption internalMsg prefix idx =
+    Task.attempt (\_ -> internalMsg NoOp) (scrollTask prefix idx)
 
 
-scrollTask : Int -> Task.Task Dom.Error ()
-scrollTask idx =
+scrollTask : Prefix -> Int -> Task.Task Dom.Error ()
+scrollTask idPrefix idx =
     Task.sequence
-        [ Dom.getElement (optionId idx) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (optionId idx) |> Task.map (\x -> x.element.height)
+        [ Dom.getElement (optionId idPrefix idx) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (optionId idPrefix idx) |> Task.map (\x -> x.element.height)
         , Dom.getElement "elm-smart-select--select-options-container" |> Task.map (\x -> x.element.y)
         , Dom.getElement "elm-smart-select--select-options-container" |> Task.map (\x -> x.element.height)
         , Dom.getViewportOf "elm-smart-select--select-options-container" |> Task.map (\x -> x.viewport.y)
@@ -357,11 +373,6 @@ classPrefix =
     "elm-smart-select--"
 
 
-optionId : Int -> String
-optionId idx =
-    "option-" ++ String.fromInt idx
-
-
 showSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html msg
 showSpinner { spinner, spinnerColor } =
     div [ class (classPrefix ++ "loading-spinner-container") ] [ div [ class (classPrefix ++ "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig spinnerColor) spinner ] ]
@@ -379,9 +390,10 @@ showOptions :
     , optionsContainerMaxHeight : Float
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , idPrefix : Prefix
     }
     -> Html msg
-showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg } =
+showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix } =
     if List.isEmpty options && searchText /= "" then
         div [ class (classPrefix ++ "search-or-no-results-text") ] [ text <| noResultsForMsg searchText ]
 
@@ -395,7 +407,7 @@ showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selecte
                     div
                         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option :: selectedOptions, SetFocused <| Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
-                        , id <| optionId idx
+                        , id <| optionId idPrefix idx
                         , classList
                             [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == focusedOptionIndex ) ]
                         ]
@@ -431,9 +443,10 @@ viewRemoteData :
     , queryErrorMsg : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , idPrefix : Prefix
     }
     -> Html msg
-viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } =
+viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix } =
     case remoteData of
         NotAsked ->
             if characterSearchThreshold == 0 then
@@ -469,6 +482,7 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
                 , optionsContainerMaxHeight = optionsContainerMaxHeight
                 , noResultsForMsg = noResultsForMsg
                 , noOptionsMsg = noOptionsMsg
+                , idPrefix = idPrefix
                 }
 
         Failure _ ->
@@ -660,7 +674,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
     in
     if isDisabled then
         div
-            [ id smartSelectId
+            [ id (smartSelectId model.idPrefix)
             , class
                 (String.join " "
                     [ classPrefix ++ "selector-container"
@@ -674,7 +688,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
 
     else
         div
-            [ id smartSelectId
+            [ id (smartSelectId model.idPrefix)
             , onClick <| model.internalMsg Open
             , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
             , Events.preventDefaultOn "keydown"
@@ -698,7 +712,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
                         ([ div
                             [ class (classPrefix ++ "multi-input-container") ]
                             [ input
-                                [ id "smart-select-input"
+                                [ id (smartSelectInputId model.idPrefix)
                                 , class (classPrefix ++ "multi-input")
                                 , autocomplete False
                                 , onInput <| \val -> model.internalMsg <| SetSearchText val
@@ -749,6 +763,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
                             , queryErrorMsg = queryErrorMsg
                             , noResultsForMsg = noResultsForMsg
                             , noOptionsMsg = noOptionsMsg
+                            , idPrefix = model.idPrefix
                             }
                         ]
 
