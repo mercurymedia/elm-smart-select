@@ -19,7 +19,10 @@ module SmartSelect.Utilities exposing
 
 -}
 
+import Browser.Dom exposing (Element)
 import Color
+import Html
+import Html.Attributes
 import Http exposing (Header)
 import Json.Decode as Decode exposing (Decoder)
 import Spinner

@@ -23,5 +23,7 @@
         "jinjor/elm-debounce": "3.0.0 <= v < 4.0.0",
         "krisajenkins/remotedata": "6.0.0 <= v < 7.0.0"
     },
-    "test-dependencies": {}
+    "test-dependencies": {
+        "elm-explorations/test": "2.2.0 <= v < 3.0.0"
+    }
 }

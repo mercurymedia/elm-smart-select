@@ -17,6 +17,7 @@ import Html.Attributes exposing (autocomplete, class, classList, id, placeholder
 import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
+import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
 import Task
 
@@ -28,12 +29,12 @@ type SmartSelect msg a
 
 
 type alias Model msg a =
-    { selectWidth : Float
-    , isOpen : Bool
+    { isOpen : Bool
     , searchText : String
     , focusedOptionIndex : Int
     , selectionMsg : ( a, Msg a ) -> msg
     , internalMsg : Msg a -> msg
+    , alignment : Maybe Alignment
     }
 
 
@@ -46,7 +47,7 @@ type Msg a
     | DownKeyPressed Int
     | SetSearchText String
     | WindowResized ( Int, Int )
-    | MaybeGotSelect (Result Dom.Error Element)
+    | GotAlignment (Result Dom.Error (Maybe { container : Element, select : Element }))
     | Open
     | Close
 
@@ -60,12 +61,12 @@ type Msg a
 init : { selectionMsg : ( a, Msg a ) -> msg, internalMsg : Msg a -> msg } -> SmartSelect msg a
 init { selectionMsg, internalMsg } =
     SmartSelect
-        { selectWidth = 0
-        , isOpen = False
+        { isOpen = False
         , searchText = ""
         , focusedOptionIndex = 0
         , selectionMsg = selectionMsg
         , internalMsg = internalMsg
+        , alignment = Nothing
         }
 
 
@@ -167,22 +168,32 @@ update msg (SmartSelect model) =
             ( SmartSelect { model | searchText = text, focusedOptionIndex = 0 }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getSelectWidth model.internalMsg )
+            ( SmartSelect model, getAlignment model.internalMsg )
 
-        MaybeGotSelect result ->
+        GotAlignment result ->
             case result of
-                Ok component ->
-                    let
-                        selectWidth =
-                            component.element |> (\el -> el.width)
-                    in
-                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.internalMsg )
+                Ok maybeElements ->
+                    case maybeElements of
+                        Just elements ->
+                            ( SmartSelect { model | alignment = Just (Alignment.init elements) }, Cmd.none )
+
+                        Nothing ->
+                            ( SmartSelect model, Cmd.none )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
 
         Open ->
-            ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }, Cmd.batch [ getSelectWidth model.internalMsg, focusInput model.internalMsg ] )
+            if model.isOpen then
+                ( SmartSelect model, Cmd.none )
+
+            else
+                ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }
+                , Cmd.batch
+                    [ getAlignment model.internalMsg
+                    , focusInput model.internalMsg
+                    ]
+                )
 
         Close ->
             ( SmartSelect { model | isOpen = False, searchText = "" }, Cmd.none )
@@ -193,9 +204,22 @@ focusInput internalMsg =
     Task.attempt (\_ -> internalMsg NoOp) (Dom.focus "smart-select-input")
 
 
-getSelectWidth : (Msg a -> msg) -> Cmd msg
-getSelectWidth internalMsg =
-    Task.attempt (\select -> internalMsg <| MaybeGotSelect select) (Dom.getElement smartSelectId)
+getAlignment : (Msg a -> msg) -> Cmd msg
+getAlignment internalMsg =
+    Task.sequence
+        [ Dom.getElement (classPrefix ++ "container")
+        , Dom.getElement smartSelectId
+        ]
+        |> Task.map
+            (\outcome ->
+                case outcome of
+                    [ container, select ] ->
+                        Just { container = container, select = select }
+
+                    _ ->
+                        Nothing
+            )
+        |> Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
 
 
 scrollToOption : (Msg a -> msg) -> Int -> Cmd msg
@@ -441,7 +465,15 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
         div
             [ id smartSelectId
             , classList
-                [ ( String.join " " [ classPrefix ++ "selector-container", classPrefix ++ "single-bg-color" ], True )
+                [ ( String.join " "
+                        [ classPrefix ++ "selector-container"
+                        , classPrefix ++ "single-bg-color"
+                        , model.alignment
+                            |> Maybe.map (Alignment.selectClass classPrefix)
+                            |> Maybe.withDefault ""
+                        ]
+                  , True
+                  )
                 , ( classPrefix ++ "enabled-closed", not model.isOpen )
                 , ( classPrefix ++ "enabled-opened", model.isOpen )
                 ]
@@ -459,14 +491,15 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
             [ div [ class (classPrefix ++ "label-and-selector-container") ]
                 [ div [ class (classPrefix ++ "label") ] [ text selectedLabel ]
                 , if model.isOpen then
-                    -- figure out alignment issue if possible instead of using 'left -1px'
                     div
-                        [ style "width" (String.fromFloat model.selectWidth ++ "px")
-                        , style "left" "-1px"
-                        , classList
-                            [ ( String.join " " [ classPrefix ++ "options-container", classPrefix ++ "single-bg-color" ], True )
-                            , ( classPrefix ++ "invisible", model.selectWidth == 0 )
-                            ]
+                        [ id (classPrefix ++ "container")
+                        , class
+                            (String.join " "
+                                [ classPrefix ++ "options-container"
+                                , classPrefix ++ "single-bg-color"
+                                , Alignment.containerClass classPrefix model.alignment
+                                ]
+                            )
                         ]
                         [ div
                             [ class (classPrefix ++ "single-selector-input-container") ]
