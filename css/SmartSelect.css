@@ -103,7 +103,7 @@
 }
 
 .elm-smart-select--single-selector-input:focus {
-    border-color: --var(--elm-smart-select-border-focused);
+    border-color: var(--elm-smart-select-border-focused);
 }
 
 .elm-smart-select--multi-selected-and-results-container {
@@ -168,7 +168,7 @@
 }
 
 .elm-smart-select--select-option-focused {
-    background-color: --var(--elm-smart-select-border-focused);
+    background-color: var(--elm-smart-select-border-focused);
     color: #fff;
 }
 

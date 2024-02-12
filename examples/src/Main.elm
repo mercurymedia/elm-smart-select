@@ -216,15 +216,6 @@ changePageTo url model =
             Parser.oneOf
                 [ Parser.map (SingleSelectExample.init |> toPage SingleSelect SingleSelectMsg) Parser.top
                 , Parser.map (MultiSelectExample.init |> toPage MultiSelect MultiSelectMsg) (Parser.s "multi")
-
-                --, Parser.map (Aggregation.init |> toPage Aggregation AggregationMsg) (Parser.s "aggregation")
-                --, Parser.map (ClickEvents.init |> toPage ClickEvents ClickEventsMsg) (Parser.s "click-events")
-                --, Parser.map ( { model | page = Grouping Grouping.init }, Cmd.none ) (Parser.s "grouping")
-                --, Parser.map ( { model | page = RowSelection RowSelection.init }, Cmd.none ) (Parser.s "row-selection")
-                --, Parser.map ( { model | page = Export Export.init }, Cmd.none ) (Parser.s "export")
-                --, Parser.map ( { model | page = CustomEditor CustomEditor.init }, Cmd.none ) (Parser.s "custom-editor")
-                --, Parser.map (ColumnState.init |> toPage ColumnState ColumnStateMsg) (Parser.s "column-state")
-                --, Parser.map (FilterState.init |> toPage FilterState FilterStateMsg) (Parser.s "filter-state")
                 ]
     in
     Parser.parse parser url
