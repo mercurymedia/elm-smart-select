@@ -1,5 +1,13 @@
+:root {
+    --elm-smart-select-height: 1.5rem;
+    --elm-smart-select-radius: 0.25rem;
+    --elm-smart-select-background: #edf2f7;
+    --elm-smart-select-border: #a0aec0;
+    --elm-smart-select-border-focused: #3182ce;
+}
+
 .elm-smart-select--single-bg-color {
-    background-color: #edf2f7;
+    background-color: var(--elm-smart-select-background);
 }
 
 .elm-smart-select--multi-bg-color {
@@ -8,56 +16,75 @@
 
 .elm-smart-select--selector-container {
     width: 100%;
-    min-height: 1.5rem;
+    min-height: var(--elm-smart-select-height)
 }
 
 .elm-smart-select--multi-selector-container-min-height {
-    min-height: 1.5rem;
+    min-height: var(--elm-smart-select-height);
 }
 
 .elm-smart-select--disabled {
     cursor: default;
     opacity: .5;
-    border: 1px solid #a0aec0;
-    border-radius: .25rem;
+    border: 1px solid var(--elm-smart-select-border);
+    border-radius: var(--elm-smart-select-radius)
 }
 
 .elm-smart-select--enabled-closed {
     cursor: pointer;
-    border: 1px solid #a0aec0;
-    border-radius: .25rem;
+    border: 1px solid var(--elm-smart-select-border);
+    border-radius: var(--elm-smart-select-radius);
 }
 
 .elm-smart-select--enabled-opened {
-    border-style: solid;
-    border-top-width: 1px;
-    border-left-width: 1px;
-    border-right-width: 1px;
-    border-bottom-width: 0;
-    border-color: #a0aec0;
-    border-top-left-radius: .25rem;
-    border-top-right-radius: .25rem;
+    border: 1px solid var(--elm-smart-select-border);
+}
+
+.elm-smart-select--enabled-opened.elm-smart-select--opened-above {
+    border-top-color: transparent;
+    border-bottom-left-radius: var(--elm-smart-select-radius);
+    border-bottom-right-radius: var(--elm-smart-select-radius);
+}
+
+.elm-smart-select--enabled-opened.elm-smart-select--opened-blow {
+    border-bottom-color: transparent;
+    border-top-left-radius: var(--elm-smart-select-radius);
+    border-top-right-radius: var(--elm-smart-select-radius);
 }
 
 .elm-smart-select--label-and-selector-container {
     position: relative;
+    min-height: var(--elm-smart-select-height);
 }
 
 .elm-smart-select--label {
     padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+    min-height: var(--elm-smart-select-height);
 }
 
 .elm-smart-select--options-container {
     position: absolute;
     z-index: 50;
-    border-style: solid;
-    border-bottom-width: 1px;
-    border-left-width: 1px;
-    border-right-width: 1px;
-    border-top-width: 0;
-    border-color: #a0aec0;
-    border-bottom-left-radius: .25rem;
-    border-bottom-right-radius: .25rem;
+    left: -1px;
+    width: 100%;
+    border: 1px solid var(--elm-smart-select-border);
+    display: flex;
+}
+
+.elm-smart-select--options-container-above {
+    flex-direction: column-reverse;
+    border-bottom-color: transparent;
+    border-top-left-radius: var(--elm-smart-select-radius);
+    border-top-right-radius: var(--elm-smart-select-radius);
+    bottom: 100%;
+}
+
+.elm-smart-select--options-container-below {
+    flex-direction: column;
+    border-top-color: transparent;
+    border-bottom-left-radius: var(--elm-smart-select-radius);
+    border-bottom-right-radius: var(--elm-smart-select-radius);
+    top: 100%
 }
 
 .elm-smart-select--invisible {
@@ -71,12 +98,12 @@
 .elm-smart-select--single-selector-input {
     width: 100%;
     outline: 0;
-    border: 1px solid #a0aec0;
-    border-radius: .25rem;
+    border: 1px solid var(--elm-smart-select-border);
+    border-radius: var(--elm-smart-select-radius);
 }
 
 .elm-smart-select--single-selector-input:focus {
-    border-color: #3182ce;
+    border-color: var(--elm-smart-select-border-focused);
 }
 
 .elm-smart-select--multi-selected-and-results-container {
@@ -141,7 +168,7 @@
 }
 
 .elm-smart-select--select-option-focused {
-    background-color: #3182ce;
+    background-color: var(--elm-smart-select-border-focused);
     color: #fff;
 }
 
@@ -155,7 +182,7 @@
 }
 
 .elm-smart-select--select-option-description-focused {
-    color: #edf2f7;
+    color: var(--elm-smart-select-background);
 }
 
 .elm-smart-select--error-box-container {

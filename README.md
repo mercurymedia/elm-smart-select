@@ -124,7 +124,7 @@ subscriptions model =
 
 ## Examples
 
-Examples can be found in the [examples](https://github.com/mercurymedia/elm-smart-select/tree/master/examples) folder. To build the examples to view in the browser run: `cd examples && make && cd ..` from the root of the repository.
+Examples can be found in the [examples](https://github.com/mercurymedia/elm-smart-select/tree/master/examples) folder. To view the examples run `npm install` and `npm start`. Open your browser at [localhost:1234](http://localhost:1234).
 
 ## CSS
 

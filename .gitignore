@@ -1,5 +1,5 @@
 # compiled Elm
-/elm-stuff
+elm-stuff
 
 # compiled example.js files
 /examples/Compiled/
@@ -10,3 +10,8 @@
 # Cypress
 /cypress/videos
 /cypress/screenshots
+
+# parcel
+.parcel-cache
+
+dist
