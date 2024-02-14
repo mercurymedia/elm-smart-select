@@ -1,6 +1,37 @@
-module SmartSelect.Alignment exposing (Alignment(..), containerClass, init, selectClass)
+module SmartSelect.Alignment exposing
+    ( Alignment, Params
+    , init, getElements
+    , containerClass, selectClass
+    , isAbove, params
+    )
 
-import Browser.Dom exposing (Element)
+{-| Determine the Alignment for the select options container
+
+
+# Definitions
+
+@docs Alignment, Params
+
+
+# Init
+
+@docs init, getElements
+
+
+# Classes
+
+@docs containerClass, selectClass
+
+
+# Test
+
+@docs isAbove params
+
+-}
+
+import Browser.Dom as Dom exposing (Element)
+import Task exposing (Task)
+import Task.Extra as TaskExtra
 
 
 type Alignment
@@ -8,14 +39,18 @@ type Alignment
     | Below
 
 
-init : { container : Element, select : Element } -> Alignment
-init { container, select } =
+type Params
+    = Params { container : Element, select : Element, viewport : Dom.Viewport }
+
+
+init : Params -> Alignment
+init (Params { container, select, viewport }) =
     if
         select.viewport.y
             + select.element.y
             + select.element.height
             + container.element.height
-            >= select.viewport.height
+            >= viewport.viewport.height
     then
         Above
 
@@ -44,3 +79,30 @@ selectClass classPrefix alignment =
 
         Below ->
             classPrefix ++ "opened-below"
+
+
+getElements : String -> String -> Task Dom.Error Params
+getElements containerId selectId =
+    Task.succeed (\container select viewport -> Params { container = container, select = select, viewport = viewport })
+        |> TaskExtra.andMap (Dom.getElement containerId)
+        |> TaskExtra.andMap (Dom.getElement selectId)
+        |> TaskExtra.andMap Dom.getViewport
+
+
+
+-- Test
+
+
+isAbove : Alignment -> Bool
+isAbove alignment =
+    case alignment of
+        Above ->
+            True
+
+        Below ->
+            False
+
+
+params : { container : Element, select : Element, viewport : Dom.Viewport } -> Params
+params =
+    Params

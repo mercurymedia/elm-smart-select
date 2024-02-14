@@ -42,14 +42,20 @@
 
 .elm-smart-select--enabled-opened.elm-smart-select--opened-above {
     border-top-color: transparent;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
+    border-bottom-color: var(--elm-smart-select-border);
     border-bottom-left-radius: var(--elm-smart-select-radius);
     border-bottom-right-radius: var(--elm-smart-select-radius);
 }
 
-.elm-smart-select--enabled-opened.elm-smart-select--opened-blow {
-    border-bottom-color: transparent;
+.elm-smart-select--enabled-opened.elm-smart-select--opened-below {
+    border-top-color: var(--elm-smart-select-border);
     border-top-left-radius: var(--elm-smart-select-radius);
     border-top-right-radius: var(--elm-smart-select-radius);
+    border-bottom-color: transparent;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
 }
 
 .elm-smart-select--label-and-selector-container {

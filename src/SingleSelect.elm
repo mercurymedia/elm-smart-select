@@ -9,7 +9,7 @@ module SingleSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscrip
 
 -}
 
-import Browser.Dom as Dom exposing (Element)
+import Browser.Dom as Dom
 import Browser.Events
 import Dict
 import Html exposing (Html, div, input, text)
@@ -47,7 +47,7 @@ type Msg a
     | DownKeyPressed Int
     | SetSearchText String
     | WindowResized ( Int, Int )
-    | GotAlignment (Result Dom.Error (Maybe { container : Element, select : Element }))
+    | GotAlignment (Result Dom.Error Alignment.Params)
     | Open
     | Close
 
@@ -172,13 +172,8 @@ update msg (SmartSelect model) =
 
         GotAlignment result ->
             case result of
-                Ok maybeElements ->
-                    case maybeElements of
-                        Just elements ->
-                            ( SmartSelect { model | alignment = Just (Alignment.init elements) }, Cmd.none )
-
-                        Nothing ->
-                            ( SmartSelect model, Cmd.none )
+                Ok alignmentResult ->
+                    ( SmartSelect { model | alignment = Just (Alignment.init alignmentResult) }, Cmd.none )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
@@ -206,20 +201,8 @@ focusInput internalMsg =
 
 getAlignment : (Msg a -> msg) -> Cmd msg
 getAlignment internalMsg =
-    Task.sequence
-        [ Dom.getElement (classPrefix ++ "container")
-        , Dom.getElement smartSelectId
-        ]
-        |> Task.map
-            (\outcome ->
-                case outcome of
-                    [ container, select ] ->
-                        Just { container = container, select = select }
-
-                    _ ->
-                        Nothing
-            )
-        |> Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
+    Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
+        (Alignment.getElements (classPrefix ++ "container") smartSelectId)
 
 
 scrollToOption : (Msg a -> msg) -> Int -> Cmd msg
