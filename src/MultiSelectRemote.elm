@@ -107,6 +107,11 @@ smartSelectInputId (Prefix prefix) =
     prefix ++ "-smart-select-input"
 
 
+smartSelectContainerId : Prefix -> String
+smartSelectContainerId (Prefix prefix) =
+    prefix ++ "-smart-select-container"
+
+
 optionId : Prefix -> Int -> String
 optionId (Prefix prefix) idx =
     prefix ++ "-option-" ++ String.fromInt idx
@@ -340,24 +345,24 @@ scrollToOption internalMsg prefix idx =
 
 
 scrollTask : Prefix -> Int -> Task.Task Dom.Error ()
-scrollTask idPrefix idx =
+scrollTask prefix idx =
     Task.sequence
-        [ Dom.getElement (optionId idPrefix idx) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (optionId idPrefix idx) |> Task.map (\x -> x.element.height)
-        , Dom.getElement "elm-smart-select--select-options-container" |> Task.map (\x -> x.element.y)
-        , Dom.getElement "elm-smart-select--select-options-container" |> Task.map (\x -> x.element.height)
-        , Dom.getViewportOf "elm-smart-select--select-options-container" |> Task.map (\x -> x.viewport.y)
+        [ Dom.getElement (optionId prefix idx) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (optionId prefix idx) |> Task.map (\x -> x.element.height)
+        , Dom.getElement (smartSelectContainerId prefix) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (smartSelectContainerId prefix) |> Task.map (\x -> x.element.height)
+        , Dom.getViewportOf (smartSelectContainerId prefix) |> Task.map (\x -> x.viewport.y)
         ]
         |> Task.andThen
             (\outcome ->
                 case outcome of
                     optionY :: optionHeight :: containerY :: containerHeight :: containerScrollTop :: [] ->
                         if (optionY + optionHeight) >= containerY + containerHeight then
-                            Dom.setViewportOf "elm-smart-select--select-options-container" 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
+                            Dom.setViewportOf (smartSelectContainerId prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else if optionY < containerY then
-                            Dom.setViewportOf "elm-smart-select--select-options-container" 0 (containerScrollTop + (optionY - containerY))
+                            Dom.setViewportOf (smartSelectContainerId prefix) 0 (containerScrollTop + (optionY - containerY))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else
@@ -401,7 +406,11 @@ showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selecte
         div [ class (classPrefix ++ "search-or-no-results-text") ] [ text noOptionsMsg ]
 
     else
-        div [ class (classPrefix ++ "select-options-container"), style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px"), style "overflow" "auto" ]
+        div
+            [ id (smartSelectContainerId idPrefix)
+            , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
+            , class (classPrefix ++ "container")
+            ]
             (List.map
                 (\( idx, option ) ->
                     div
