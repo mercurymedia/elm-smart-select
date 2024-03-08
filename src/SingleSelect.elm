@@ -191,7 +191,7 @@ update msg (SmartSelect model) =
                 )
 
         Close ->
-            ( SmartSelect { model | isOpen = False, searchText = "" }, Cmd.none )
+            ( SmartSelect { model | isOpen = False, searchText = "", alignment = Nothing }, Cmd.none )
 
 
 focusInput : (Msg a -> msg) -> Cmd msg
@@ -448,15 +448,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
         div
             [ id smartSelectId
             , classList
-                [ ( String.join " "
-                        [ classPrefix ++ "selector-container"
-                        , classPrefix ++ "single-bg-color"
-                        , model.alignment
-                            |> Maybe.map (Alignment.selectClass classPrefix)
-                            |> Maybe.withDefault ""
-                        ]
-                  , True
-                  )
+                [ ( classPrefix ++ "selector-container", True )
                 , ( classPrefix ++ "enabled-closed", not model.isOpen )
                 , ( classPrefix ++ "enabled-opened", model.isOpen )
                 ]
@@ -474,16 +466,9 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
             [ div [ class (classPrefix ++ "label-and-selector-container") ]
                 [ div [ class (classPrefix ++ "label") ] [ text selectedLabel ]
                 , if model.isOpen then
-                    div
-                        [ id (classPrefix ++ "container")
-                        , class
-                            (String.join " "
-                                [ classPrefix ++ "options-container"
-                                , classPrefix ++ "single-bg-color"
-                                , Alignment.containerClass classPrefix model.alignment
-                                ]
-                            )
-                        ]
+                    Alignment.view
+                        classPrefix
+                        model.alignment
                         [ div
                             [ class (classPrefix ++ "single-selector-input-container") ]
                             [ input

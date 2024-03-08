@@ -173,7 +173,9 @@ update msg (SmartSelect model) =
         GotAlignment result ->
             case result of
                 Ok alignmentResult ->
-                    ( SmartSelect { model | alignment = Just (Alignment.init alignmentResult) }, Cmd.none )
+                    ( SmartSelect { model | alignment = Just (Alignment.init alignmentResult) }
+                    , focusInput model.internalMsg
+                    )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
@@ -186,7 +188,6 @@ update msg (SmartSelect model) =
                 ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }
                 , Cmd.batch
                     [ getAlignment model.internalMsg
-                    , focusInput model.internalMsg
                     ]
                 )
 
@@ -504,9 +505,6 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                         [ classPrefix ++ "selector-container"
                         , classPrefix ++ "multi-selector-container-min-height"
                         , classPrefix ++ "multi-bg-color"
-                        , model.alignment
-                            |> Maybe.map (Alignment.selectClass classPrefix)
-                            |> Maybe.withDefault ""
                         ]
                   , True
                   )
@@ -551,7 +549,8 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                             [ ( String.join " "
                                     [ classPrefix ++ "options-container"
                                     , classPrefix ++ "multi-bg-color"
-                                    , Alignment.containerClass classPrefix model.alignment
+
+                                    --, Alignment.containerClass classPrefix model.alignment
                                     ]
                               , True
                               )
