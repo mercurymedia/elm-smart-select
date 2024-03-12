@@ -2,7 +2,6 @@ module SmartSelect.Alignment exposing
     ( Alignment
     , init, getElements
     , style
-    , params
     , view
     )
 
@@ -50,10 +49,6 @@ type Placement
     | Below
 
 
-type Params
-    = Params { container : Element, select : Element, viewport : Dom.Viewport }
-
-
 init : { container : Element, select : Element, viewport : Dom.Viewport } -> Alignment
 init { container, select, viewport } =
     if
@@ -92,11 +87,6 @@ getElements containerId selectId =
 
 
 -- Test
-
-
-params : { container : Element, select : Element, viewport : Dom.Viewport } -> Params
-params =
-    Params
 
 
 style : Maybe Alignment -> List (Html.Attribute msg)
