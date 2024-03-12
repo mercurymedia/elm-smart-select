@@ -47,7 +47,7 @@ type Msg a
     | DownKeyPressed Int
     | SetSearchText String
     | WindowResized ( Int, Int )
-    | GotAlignment (Result Dom.Error Alignment.Params)
+    | GotAlignment (Result Dom.Error Alignment)
     | Open
     | Close
 
@@ -172,8 +172,8 @@ update msg (SmartSelect model) =
 
         GotAlignment result ->
             case result of
-                Ok alignmentResult ->
-                    ( SmartSelect { model | alignment = Just (Alignment.init alignmentResult) }, Cmd.none )
+                Ok alignment ->
+                    ( SmartSelect { model | alignment = Just alignment }, Cmd.none )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )

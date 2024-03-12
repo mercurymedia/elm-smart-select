@@ -1,5 +1,5 @@
 module SmartSelect.Alignment exposing
-    ( Alignment, Params
+    ( Alignment
     , init, getElements
     , style
     , params
@@ -54,8 +54,8 @@ type Params
     = Params { container : Element, select : Element, viewport : Dom.Viewport }
 
 
-init : Params -> Alignment
-init (Params { container, select, viewport }) =
+init : { container : Element, select : Element, viewport : Dom.Viewport } -> Alignment
+init { container, select, viewport } =
     if
         select.element.y
             + select.element.height
@@ -82,9 +82,9 @@ init (Params { container, select, viewport }) =
             Below
 
 
-getElements : String -> String -> Task Dom.Error Params
+getElements : String -> String -> Task Dom.Error Alignment
 getElements containerId selectId =
-    Task.succeed (\container select viewport -> Params { container = container, select = select, viewport = viewport })
+    Task.succeed (\container select viewport -> init { container = container, select = select, viewport = viewport })
         |> TaskExtra.andMap (Dom.getElement containerId)
         |> TaskExtra.andMap (Dom.getElement selectId)
         |> TaskExtra.andMap Dom.getViewport
@@ -102,7 +102,7 @@ params =
 style : Maybe Alignment -> List (Html.Attribute msg)
 style alignment =
     case alignment of
-        Just (Alignment (Position { x, y, width }) placement) ->
+        Just (Alignment (Position { x, y, width }) _) ->
             [ Attrs.style "position" "fixed"
             , Attrs.style "top" (String.fromFloat y ++ "px")
             , Attrs.style "left" (String.fromFloat x ++ "px")

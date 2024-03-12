@@ -47,7 +47,7 @@ type Msg a
     | DownKeyPressed Int
     | SetSearchText String
     | WindowResized ( Int, Int )
-    | GotAlignment (Result Dom.Error Alignment.Params)
+    | GotAlignment (Result Dom.Error Alignment)
     | Open
     | Close
 
@@ -172,8 +172,8 @@ update msg (SmartSelect model) =
 
         GotAlignment result ->
             case result of
-                Ok alignmentResult ->
-                    ( SmartSelect { model | alignment = Just (Alignment.init alignmentResult) }
+                Ok aligment ->
+                    ( SmartSelect { model | alignment = Just aligment }
                     , focusInput model.internalMsg
                     )
 
@@ -549,28 +549,27 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                             [ ( String.join " "
                                     [ classPrefix ++ "options-container"
                                     , classPrefix ++ "multi-bg-color"
-
-                                    --, Alignment.containerClass classPrefix model.alignment
                                     ]
                               , True
                               )
-
-                            --, ( classPrefix ++ "invisible", model.selectElement == Nothing )
                             ]
                         ]
-                        [ showOptions
-                            { selectionMsg = model.selectionMsg
-                            , internalMsg = model.internalMsg
-                            , selectedOptions = selected
-                            , options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
-                            , optionLabelFn = optionLabelFn
-                            , optionDescriptionFn = optionDescriptionFn
-                            , optionsContainerMaxHeight = optionsContainerMaxHeight
-                            , searchText = model.searchText
-                            , focusedOptionIndex = model.focusedOptionIndex
-                            , noResultsForMsg = noResultsForMsg
-                            , noOptionsMsg = noOptionsMsg
-                            }
+                        [ Alignment.view classPrefix
+                            model.alignment
+                            [ showOptions
+                                { selectionMsg = model.selectionMsg
+                                , internalMsg = model.internalMsg
+                                , selectedOptions = selected
+                                , options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
+                                , optionLabelFn = optionLabelFn
+                                , optionDescriptionFn = optionDescriptionFn
+                                , optionsContainerMaxHeight = optionsContainerMaxHeight
+                                , searchText = model.searchText
+                                , focusedOptionIndex = model.focusedOptionIndex
+                                , noResultsForMsg = noResultsForMsg
+                                , noOptionsMsg = noOptionsMsg
+                                }
+                            ]
                         ]
 
                   else
