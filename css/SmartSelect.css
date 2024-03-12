@@ -6,13 +6,7 @@
     --elm-smart-select-border-focused: #3182ce;
 }
 
-.elm-smart-select--single-bg-color {
-    background-color: var(--elm-smart-select-background);
-}
 
-.elm-smart-select--multi-bg-color {
-    background-color: #fff;
-}
 
 .elm-smart-select--selector-container {
     width: 100%;
@@ -38,19 +32,9 @@
 
 .elm-smart-select--enabled-opened {
     border: 1px solid var(--elm-smart-select-border);
+    border-radius: var(--elm-smart-select-radius);
 }
 
-.elm-smart-select--enabled-opened.elm-smart-select--opened-above {
-    border-top-color: transparent;
-    border-bottom-left-radius: var(--elm-smart-select-radius);
-    border-bottom-right-radius: var(--elm-smart-select-radius);
-}
-
-.elm-smart-select--enabled-opened.elm-smart-select--opened-blow {
-    border-bottom-color: transparent;
-    border-top-left-radius: var(--elm-smart-select-radius);
-    border-top-right-radius: var(--elm-smart-select-radius);
-}
 
 .elm-smart-select--label-and-selector-container {
     position: relative;
@@ -62,29 +46,24 @@
     min-height: var(--elm-smart-select-height);
 }
 
-.elm-smart-select--options-container {
-    position: absolute;
-    z-index: 50;
-    left: -1px;
-    width: 100%;
-    border: 1px solid var(--elm-smart-select-border);
-    display: flex;
+.elm-smart-select--container-wrapper {
+    padding: .25rem 0;
 }
 
-.elm-smart-select--options-container-above {
-    flex-direction: column-reverse;
-    border-bottom-color: transparent;
-    border-top-left-radius: var(--elm-smart-select-radius);
-    border-top-right-radius: var(--elm-smart-select-radius);
-    bottom: 100%;
+.elm-smart-select--options-container {
+    background: #fff;
+    z-index: 50;
+    border: 1px solid var(--elm-smart-select-border);
+    border-radius: var(--elm-smart-select-radius);
+    display: flex;
 }
 
 .elm-smart-select--options-container-below {
     flex-direction: column;
-    border-top-color: transparent;
-    border-bottom-left-radius: var(--elm-smart-select-radius);
-    border-bottom-right-radius: var(--elm-smart-select-radius);
-    top: 100%
+}
+
+.elm-smart-select--options-container-above {
+    flex-direction: column-reverse;
 }
 
 .elm-smart-select--invisible {

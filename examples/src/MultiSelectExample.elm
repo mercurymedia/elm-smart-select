@@ -72,7 +72,14 @@ view model =
             [ input [ style "margin-bottom" "1rem" ] []
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ MultiSelect.view { selected = model.selectedProducts, options = model.products, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedProduct } model.select ]
+                [ MultiSelect.view
+                    { selected = model.selectedProducts
+                    , options = model.products
+                    , optionLabelFn = .name
+                    , viewSelectedOptionFn = viewSelectedProduct
+                    }
+                    model.select
+                ]
             , button [] [ text "Submit" ]
             ]
         ]

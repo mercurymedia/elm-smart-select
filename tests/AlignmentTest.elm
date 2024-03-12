@@ -1,6 +1,6 @@
 module AlignmentTest exposing (suite)
 
-import Browser.Dom exposing (Element)
+import Browser.Dom as Dom exposing (Element)
 import Expect
 import SmartSelect.Alignment as Alignment
 import Test exposing (Test, describe, test)
@@ -25,24 +25,42 @@ suite =
                         , scene = { height = 728, width = 1272 }
                         , viewport = { height = 632, width = 1272, x = 0, y = 0 }
                         }
+
+                    viewport : Dom.Viewport
+                    viewport =
+                        { scene = { height = 728, width = 1272 }
+                        , viewport = { height = 632, width = 1272, x = 0, y = 0 }
+                        }
+
+                    alignment =
+                        Alignment.init (Alignment.params { container = container, select = select, viewport = viewport })
                 in
-                Expect.equal (Alignment.init { container = container, select = select }) Alignment.Above
+                Expect.equal (Alignment.isAbove alignment) True
         , test "Should return Below when the container element fit below the select element" <|
             \_ ->
                 let
-                    selectElement : Element
-                    selectElement =
+                    select : Element
+                    select =
                         { element = { height = 34, width = 502, x = 428, y = 480 }
                         , scene = { height = 1073, width = 1272 }
                         , viewport = { height = 977, width = 1272, x = 0, y = 0 }
                         }
 
-                    containerElement : Element
-                    containerElement =
+                    container : Element
+                    container =
                         { element = { height = 282, width = 502, x = 428, y = 513 }
                         , scene = { height = 1073, width = 1272 }
                         , viewport = { height = 977, width = 1272, x = 0, y = 0 }
                         }
+
+                    viewport : Dom.Viewport
+                    viewport =
+                        { scene = { height = 728, width = 1272 }
+                        , viewport = { height = 632, width = 1272, x = 0, y = 0 }
+                        }
+
+                    alignment =
+                        Alignment.init (Alignment.params { container = container, select = select, viewport = viewport })
                 in
-                Expect.equal (Alignment.init { container = containerElement, select = selectElement }) Alignment.Below
+                Expect.notEqual (Alignment.isAbove alignment) True
         ]

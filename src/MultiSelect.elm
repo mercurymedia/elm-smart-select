@@ -9,7 +9,7 @@ module MultiSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscript
 
 -}
 
-import Browser.Dom as Dom exposing (Element)
+import Browser.Dom as Dom
 import Browser.Events
 import Dict
 import Html exposing (Html, div, input, text)
@@ -47,7 +47,7 @@ type Msg a
     | DownKeyPressed Int
     | SetSearchText String
     | WindowResized ( Int, Int )
-    | GotAlignment (Result Dom.Error (Maybe { container : Element, select : Element }))
+    | GotAlignment (Result Dom.Error Alignment)
     | Open
     | Close
 
@@ -172,13 +172,10 @@ update msg (SmartSelect model) =
 
         GotAlignment result ->
             case result of
-                Ok maybeElements ->
-                    case maybeElements of
-                        Just elements ->
-                            ( SmartSelect { model | alignment = Just (Alignment.init elements) }, Cmd.none )
-
-                        Nothing ->
-                            ( SmartSelect model, Cmd.none )
+                Ok aligment ->
+                    ( SmartSelect { model | alignment = Just aligment }
+                    , focusInput model.internalMsg
+                    )
 
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
@@ -191,7 +188,6 @@ update msg (SmartSelect model) =
                 ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }
                 , Cmd.batch
                     [ getAlignment model.internalMsg
-                    , focusInput model.internalMsg
                     ]
                 )
 
@@ -210,20 +206,8 @@ focusInput internalMsg =
 
 getAlignment : (Msg a -> msg) -> Cmd msg
 getAlignment internalMsg =
-    Task.sequence
-        [ Dom.getElement (classPrefix ++ "select-options-container")
-        , Dom.getElement smartSelectId
-        ]
-        |> Task.map
-            (\outcome ->
-                case outcome of
-                    [ container, select ] ->
-                        Just { container = container, select = select }
-
-                    _ ->
-                        Nothing
-            )
-        |> Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
+    Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
+        (Alignment.getElements (classPrefix ++ "select-options-container") smartSelectId)
 
 
 scrollToOption : (Msg a -> msg) -> Int -> Cmd msg
@@ -521,9 +505,6 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                         [ classPrefix ++ "selector-container"
                         , classPrefix ++ "multi-selector-container-min-height"
                         , classPrefix ++ "multi-bg-color"
-                        , model.alignment
-                            |> Maybe.map (Alignment.selectClass classPrefix)
-                            |> Maybe.withDefault ""
                         ]
                   , True
                   )
@@ -568,27 +549,27 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                             [ ( String.join " "
                                     [ classPrefix ++ "options-container"
                                     , classPrefix ++ "multi-bg-color"
-                                    , Alignment.containerClass classPrefix model.alignment
                                     ]
                               , True
                               )
-
-                            --, ( classPrefix ++ "invisible", model.selectElement == Nothing )
                             ]
                         ]
-                        [ showOptions
-                            { selectionMsg = model.selectionMsg
-                            , internalMsg = model.internalMsg
-                            , selectedOptions = selected
-                            , options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
-                            , optionLabelFn = optionLabelFn
-                            , optionDescriptionFn = optionDescriptionFn
-                            , optionsContainerMaxHeight = optionsContainerMaxHeight
-                            , searchText = model.searchText
-                            , focusedOptionIndex = model.focusedOptionIndex
-                            , noResultsForMsg = noResultsForMsg
-                            , noOptionsMsg = noOptionsMsg
-                            }
+                        [ Alignment.view classPrefix
+                            model.alignment
+                            [ showOptions
+                                { selectionMsg = model.selectionMsg
+                                , internalMsg = model.internalMsg
+                                , selectedOptions = selected
+                                , options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
+                                , optionLabelFn = optionLabelFn
+                                , optionDescriptionFn = optionDescriptionFn
+                                , optionsContainerMaxHeight = optionsContainerMaxHeight
+                                , searchText = model.searchText
+                                , focusedOptionIndex = model.focusedOptionIndex
+                                , noResultsForMsg = noResultsForMsg
+                                , noOptionsMsg = noOptionsMsg
+                                }
+                            ]
                         ]
 
                   else
