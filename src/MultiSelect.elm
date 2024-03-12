@@ -18,6 +18,7 @@ import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
+import SmartSelect.Id as Id exposing (Prefix(..))
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
 import Task
 
@@ -26,10 +27,6 @@ import Task
 -}
 type SmartSelect msg a
     = SmartSelect (Model msg a)
-
-
-type Prefix
-    = Prefix String
 
 
 type alias Model msg a =
@@ -77,26 +74,6 @@ init { selectionMsg, internalMsg, idPrefix } =
         }
 
 
-smartSelectId : Prefix -> String
-smartSelectId (Prefix prefix) =
-    prefix ++ "-smart-select-component"
-
-
-smartSelectInputId : Prefix -> String
-smartSelectInputId (Prefix prefix) =
-    prefix ++ "-smart-select-input"
-
-
-smartSelectContainerId : Prefix -> String
-smartSelectContainerId (Prefix prefix) =
-    prefix ++ "-smart-select-container"
-
-
-optionId : Prefix -> Int -> String
-optionId (Prefix prefix) idx =
-    prefix ++ "-option-" ++ String.fromInt idx
-
-
 {-| Events external to the smart select to which it is subscribed.
 -}
 subscriptions : SmartSelect msg a -> Sub msg
@@ -104,7 +81,7 @@ subscriptions (SmartSelect model) =
     if model.isOpen then
         Sub.batch
             [ Browser.Events.onResize (\h w -> model.internalMsg <| WindowResized ( h, w ))
-            , Browser.Events.onMouseDown (clickedOutsideSelect (smartSelectId model.idPrefix) model.internalMsg)
+            , Browser.Events.onMouseDown (clickedOutsideSelect (Id.select model.idPrefix) model.internalMsg)
             ]
 
     else
@@ -222,13 +199,13 @@ update msg (SmartSelect model) =
 
 focusInput : Prefix -> (Msg a -> msg) -> Cmd msg
 focusInput prefix internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (smartSelectInputId prefix))
+    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (Id.input prefix))
 
 
 getAlignment : Prefix -> (Msg a -> msg) -> Cmd msg
 getAlignment prefix internalMsg =
     Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
-        (Alignment.getElements (smartSelectContainerId prefix) (smartSelectId prefix))
+        (Alignment.getElements (Id.container prefix) (Id.select prefix))
 
 
 scrollToOption : (Msg a -> msg) -> Prefix -> Int -> Cmd msg
@@ -239,22 +216,22 @@ scrollToOption internalMsg prefix idx =
 scrollTask : Prefix -> Int -> Task.Task Dom.Error ()
 scrollTask prefix idx =
     Task.sequence
-        [ Dom.getElement (optionId prefix idx) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (optionId prefix idx) |> Task.map (\x -> x.element.height)
-        , Dom.getElement (smartSelectContainerId prefix) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (smartSelectContainerId prefix) |> Task.map (\x -> x.element.height)
-        , Dom.getViewportOf (smartSelectContainerId prefix) |> Task.map (\x -> x.viewport.y)
+        [ Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.height)
+        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.height)
+        , Dom.getViewportOf (Id.container prefix) |> Task.map (\x -> x.viewport.y)
         ]
         |> Task.andThen
             (\outcome ->
                 case outcome of
                     optionY :: optionHeight :: containerY :: containerHeight :: containerScrollTop :: [] ->
                         if (optionY + optionHeight) >= containerY + containerHeight then
-                            Dom.setViewportOf (smartSelectContainerId prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
+                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else if optionY < containerY then
-                            Dom.setViewportOf (smartSelectContainerId prefix) 0 (containerScrollTop + (optionY - containerY))
+                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + (optionY - containerY))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else
@@ -294,7 +271,7 @@ showOptions { selectionMsg, internalMsg, selectedOptions, options, optionLabelFn
 
     else
         div
-            [ id (smartSelectContainerId idPrefix)
+            [ id (Id.container idPrefix)
             , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
             , class (classPrefix ++ "container")
             ]
@@ -303,7 +280,7 @@ showOptions { selectionMsg, internalMsg, selectedOptions, options, optionLabelFn
                     div
                         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option :: selectedOptions, SetFocused <| Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
-                        , id <| optionId idPrefix idx
+                        , id <| Id.option idPrefix idx
                         , classList
                             [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == focusedOptionIndex ) ]
                         ]
@@ -495,7 +472,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
     in
     if isDisabled then
         div
-            [ id (smartSelectId model.idPrefix)
+            [ id (Id.select model.idPrefix)
             , class
                 (String.join " "
                     [ classPrefix ++ "selector-container"
@@ -509,7 +486,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
 
     else
         div
-            [ id (smartSelectId model.idPrefix)
+            [ id (Id.select model.idPrefix)
             , onClick <| model.internalMsg Open
             , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
             , Events.preventDefaultOn "keydown"
@@ -541,7 +518,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                         ([ div
                             [ class (classPrefix ++ "multi-input-container") ]
                             [ input
-                                [ id (smartSelectInputId model.idPrefix)
+                                [ id (Id.input model.idPrefix)
                                 , class (classPrefix ++ "multi-input")
                                 , autocomplete False
                                 , onInput <| \val -> model.internalMsg <| SetSearchText val
@@ -575,7 +552,9 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                               )
                             ]
                         ]
-                        [ Alignment.view classPrefix
+                        [ Alignment.view
+                            model.idPrefix
+                            classPrefix
                             model.alignment
                             [ showOptions
                                 { selectionMsg = model.selectionMsg

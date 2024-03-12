@@ -32,6 +32,7 @@ module SmartSelect.Alignment exposing
 import Browser.Dom as Dom exposing (Element)
 import Html exposing (Html, div)
 import Html.Attributes as Attrs
+import SmartSelect.Id as Id
 import Task exposing (Task)
 import Task.Extra as TaskExtra
 
@@ -118,10 +119,10 @@ containerClass classPrefix alignment =
             ""
 
 
-view : String -> Maybe Alignment -> List (Html msg) -> Html msg
-view classPrefix alignment children =
+view : Id.Prefix -> String -> Maybe Alignment -> List (Html msg) -> Html msg
+view prefix classPrefix alignment children =
     div
-        (Attrs.id (classPrefix ++ "container")
+        (Attrs.id (Id.container prefix)
             :: Attrs.class (classPrefix ++ "container-wrapper")
             :: style alignment
         )
