@@ -54,6 +54,7 @@ init =
       , select = SingleSelect.init
             { selectionMsg = HandleSelection
             , internalMsg = HandleSelectUpdate
+            , idPrefix = "my-prefix"
             }
       , selectedProduct = Nothing
       }

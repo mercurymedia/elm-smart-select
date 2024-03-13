@@ -6,6 +6,7 @@ import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (class, href, style, target)
 import MultiSelectExample
 import SingleSelectExample
+import SingleSelectRemoteExample
 import Url exposing (Url)
 import Url.Parser as Parser
 
@@ -34,6 +35,7 @@ type alias Model =
 
 type Page
     = SingleSelect SingleSelectExample.Model
+    | SingleSelectRemote SingleSelectRemoteExample.Model
     | MultiSelect MultiSelectExample.Model
     | NotFound
 
@@ -42,6 +44,7 @@ type Msg
     = ChangedUrl Url
     | ClickedLink Browser.UrlRequest
     | SingleSelectMsg SingleSelectExample.Msg
+    | SingleSelectRemoteMsg SingleSelectRemoteExample.Msg
     | MultiSelectMsg MultiSelectExample.Msg
 
 
@@ -70,6 +73,9 @@ subscriptions model =
 
         SingleSelect selectModel ->
             Sub.map SingleSelectMsg (SingleSelectExample.subscriptions selectModel)
+
+        SingleSelectRemote selectModel ->
+            Sub.map SingleSelectRemoteMsg (SingleSelectRemoteExample.subscriptions selectModel)
 
         MultiSelect selectModel ->
             Sub.map MultiSelectMsg (MultiSelectExample.subscriptions selectModel)
@@ -103,6 +109,13 @@ update msg model =
                     SingleSelectExample.update subMsg subModel
             in
             ( { model | page = SingleSelect updatedSubModel }, Cmd.map SingleSelectMsg pageCmd )
+
+        ( SingleSelectRemoteMsg subMsg, SingleSelectRemote subModel ) ->
+            let
+                ( updatedSubModel, pageCmd ) =
+                    SingleSelectRemoteExample.update subMsg subModel
+            in
+            ( { model | page = SingleSelectRemote updatedSubModel }, Cmd.map SingleSelectRemoteMsg pageCmd )
 
         ( MultiSelectMsg subMsg, MultiSelect subModel ) ->
             let
@@ -196,6 +209,9 @@ viewPage page =
 
             SingleSelect pageModel ->
                 toPage SingleSelectMsg (SingleSelectExample.view pageModel)
+
+            SingleSelectRemote pageModel ->
+                toPage SingleSelectRemoteMsg (SingleSelectRemoteExample.view pageModel)
 
             MultiSelect pageModel ->
                 toPage MultiSelectMsg (MultiSelectExample.view pageModel)

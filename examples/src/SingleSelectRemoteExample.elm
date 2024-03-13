@@ -1,9 +1,9 @@
-module MultiSelectExample exposing (Model, Msg, init, subscriptions, update, view)
+module SingleSelectRemoteExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, div, form, input, text)
+import Html exposing (Html, button, div, form, input, p, text)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
-import MultiSelect
+import SingleSelect
 
 
 type alias Product =
@@ -15,15 +15,15 @@ type alias Product =
 
 type alias Model =
     { products : List Product
-    , select : MultiSelect.SmartSelect Msg Product
-    , selectedProducts : List Product
+    , select : SingleSelect.SmartSelect Msg Product
+    , selectedProduct : Maybe Product
     , wasFormSubmitted : Bool
     }
 
 
 type Msg
-    = HandleSelectUpdate (MultiSelect.Msg Product)
-    | HandleSelection ( List Product, MultiSelect.Msg Product )
+    = HandleSelectUpdate (SingleSelect.Msg Product)
+    | HandleSelection ( Product, SingleSelect.Msg Product )
     | HandleFormSubmission
 
 
@@ -33,31 +33,32 @@ update msg model =
         HandleSelectUpdate sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelect.update sMsg model.select
+                    SingleSelect.update sMsg model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
         HandleSelection ( selection, sMsg ) ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelect.update sMsg model.select
+                    SingleSelect.update sMsg model.select
             in
-            ( { model | selectedProducts = selection, select = updatedSelect }, selectCmd )
+            ( { model | selectedProduct = Just selection, select = updatedSelect }, selectCmd )
 
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
 
-viewSelectedProduct : Product -> Html Msg
-viewSelectedProduct product =
-    div [ style "padding" ".25rem", style "cursor" "pointer", style "background-color" "#edf2f7", style "border" "1px solid #a0aec0" ]
-        [ text (product.name ++ " " ++ product.price) ]
-
-
 view : Model -> Html Msg
 view model =
-    div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ div [ style "margin-bottom" "1rem" ] [ text "This form contains a multi select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
+    div
+        [ style "width" "100%"
+        , style "height" "100vh"
+        , style "padding" "3rem"
+        ]
+        [ div
+            [ style "margin-bottom" "1rem"
+            ]
+            [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
         , div [ id "form-submission-status", style "margin-bottom" "1rem" ]
             [ text
                 (if model.wasFormSubmitted then
@@ -68,17 +69,11 @@ view model =
                 )
             ]
         , form [ onSubmit HandleFormSubmission ]
-            [ input [ style "margin-bottom" "1rem" ] []
+            [ input [ style "margin-bottom" "20rem" ] []
+            , p [] [ text "The select will automatically open to the top, if there is not enought space." ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ MultiSelect.view
-                    { selected = model.selectedProducts
-                    , options = model.products
-                    , optionLabelFn = .name
-                    , viewSelectedOptionFn = viewSelectedProduct
-                    }
-                    model.select
-                ]
+                [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
             , button [] [ text "Submit" ]
             ]
         ]
@@ -129,12 +124,12 @@ init : ( Model, Cmd Msg )
 init =
     ( { products = exampleProducts
       , select =
-            MultiSelect.init
+            SingleSelect.init
                 { selectionMsg = HandleSelection
                 , internalMsg = HandleSelectUpdate
-                , idPrefix = "multi-select"
+                , idPrefix = "single-select"
                 }
-      , selectedProducts = []
+      , selectedProduct = Nothing
       , wasFormSubmitted = False
       }
     , Cmd.none
@@ -143,4 +138,4 @@ init =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    MultiSelect.subscriptions model.select
+    SingleSelect.subscriptions model.select

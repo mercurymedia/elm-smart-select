@@ -10,7 +10,7 @@
 
 .elm-smart-select--selector-container {
     width: 100%;
-    min-height: var(--elm-smart-select-height)
+    min-height: var(--elm-smart-select-height);
 }
 
 .elm-smart-select--multi-selector-container-min-height {
@@ -137,8 +137,9 @@
     padding: 0.25rem 0.5rem 0.25rem 0.5rem;
 }
 
-#elm-smart-select--select-options-container {
+.elm-smart-select--container{
     width: 100%;
+    overflow: auto;
 }
 
 .elm-smart-select--select-option {
