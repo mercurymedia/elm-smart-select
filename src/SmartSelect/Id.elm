@@ -1,9 +1,9 @@
 module SmartSelect.Id exposing
     ( Prefix(..)
-    , option
-    , select
     , container
     , input
+    , option
+    , select
     )
 
 

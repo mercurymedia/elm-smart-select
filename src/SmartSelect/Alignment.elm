@@ -116,7 +116,7 @@ containerClass classPrefix alignment =
             classPrefix ++ "options-container-above"
 
         Nothing ->
-            ""
+            classPrefix ++ "options-container-below"
 
 
 view : Id.Prefix -> String -> Maybe Alignment -> List (Html msg) -> Html msg

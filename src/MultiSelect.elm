@@ -271,8 +271,7 @@ showOptions { selectionMsg, internalMsg, selectedOptions, options, optionLabelFn
 
     else
         div
-            [ id (Id.container idPrefix)
-            , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
+            [ style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
             , class (classPrefix ++ "container")
             ]
             (List.map

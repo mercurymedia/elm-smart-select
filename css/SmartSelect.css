@@ -10,7 +10,7 @@
 
 .elm-smart-select--selector-container {
     width: 100%;
-    min-height: var(--elm-smart-select-height)
+    min-height: var(--elm-smart-select-height);
 }
 
 .elm-smart-select--multi-selector-container-min-height {
