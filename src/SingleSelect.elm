@@ -150,7 +150,7 @@ keyActionMapper { options, focusedOptionIndex, selectionMsg, internalMsg } =
                     Escape ->
                         ( internalMsg Close, Utilities.preventDefault key )
 
-                    Other ->
+                    _ ->
                         ( internalMsg NoOp, Utilities.preventDefault key )
             )
 

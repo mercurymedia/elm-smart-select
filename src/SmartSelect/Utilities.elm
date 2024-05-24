@@ -95,6 +95,7 @@ type KeyCode
     = Up
     | Down
     | Enter
+    | Backspace
     | Escape
     | Other
 
@@ -120,6 +121,9 @@ toKeyCode string =
 
         "Enter" ->
             Enter
+
+        "Backspace" ->
+            Backspace
 
         "Escape" ->
             Escape

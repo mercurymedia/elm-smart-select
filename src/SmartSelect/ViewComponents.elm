@@ -72,11 +72,12 @@ viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isD
             ]
             :: attrs
         )
-        [ div [] selectedOptions
-        , input (disabled isDisabled :: inputAttributes) []
-        , viewIcon (class (classPrefix "text-field__icon_x") :: clearIconAttributes) Icons.x
-        , viewIcon [ class (classPrefix "text-field__icon_chevron") ] Icons.chevronDown
-        ]
+        (selectedOptions
+            ++ [ input (disabled isDisabled :: inputAttributes) []
+               , viewIcon (class (classPrefix "text-field__icon_x") :: clearIconAttributes) Icons.x
+               , viewIcon [ class (classPrefix "text-field__icon_chevron") ] Icons.chevronDown
+               ]
+        )
 
 
 viewIcon : List (Html.Attribute msg) -> Icons.Icon -> Html msg

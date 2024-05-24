@@ -40,10 +40,6 @@
     align-items: center;
 }
 
-.elm-smart-select--selected-entity-wrapper {
-    margin: .25rem;
-}
-
 .elm-smart-select--multi-input-container {
     width: 50px;
 }
@@ -121,15 +117,16 @@
 
 .elm-smart-select--text-field {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.125rem;
+    gap: 0.25rem;
     overflow: hidden;
     background-color: var(--elm-smart-select-background);
     border: 1px solid #ddd;
     border-radius: var(--elm-smart-select-radius);
-    padding-right: 0.5rem;
     cursor: text;
     transition: all ease-in-out 200ms;
+    padding: 0.5rem 0.5rem;
 }
 
 .elm-smart-select--text-field:hover {
@@ -150,8 +147,13 @@
     border: none;
     border-radius: 0;
     min-height: var(--elm-smart-select-height);
-    padding: 0.5rem 0.5rem;
     background-color: transparent;
+    width: 0;
+    min-width: 40px;
+}
+
+.elm-smart-select--text-field > input:placeholder-shown {
+    text-overflow: ellipsis;
 }
 
 .elm-smart-select--text-field__icon {
@@ -210,7 +212,6 @@
     font-size: .75rem;
     opacity: 0.5;
 }
-
 
 /* Alignment */
 
