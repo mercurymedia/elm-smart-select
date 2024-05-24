@@ -23,7 +23,7 @@ type alias Model =
 
 type Msg
     = HandleSelectUpdate (SingleSelect.Msg Product)
-    | HandleSelection ( Product, SingleSelect.Msg Product )
+    | HandleSelection ( Maybe Product, SingleSelect.Msg Product )
     | HandleFormSubmission
 
 
@@ -42,7 +42,7 @@ update msg model =
                 ( updatedSelect, selectCmd ) =
                     SingleSelect.update sMsg model.select
             in
-            ( { model | selectedProduct = Just selection, select = updatedSelect }, selectCmd )
+            ( { model | selectedProduct = selection, select = updatedSelect }, selectCmd )
 
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )

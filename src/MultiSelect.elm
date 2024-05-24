@@ -553,7 +553,6 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                         ]
                         [ Alignment.view
                             model.idPrefix
-                            classPrefix
                             model.alignment
                             [ showOptions
                                 { selectionMsg = model.selectionMsg

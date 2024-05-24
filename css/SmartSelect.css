@@ -1,12 +1,10 @@
 :root {
     --elm-smart-select-height: 1.5rem;
     --elm-smart-select-radius: 0.25rem;
-    --elm-smart-select-background: #edf2f7;
+    --elm-smart-select-background: #fff;
     --elm-smart-select-border: #a0aec0;
     --elm-smart-select-border-focused: #3182ce;
 }
-
-
 
 .elm-smart-select--selector-container {
     width: 100%;
@@ -16,25 +14,6 @@
 .elm-smart-select--multi-selector-container-min-height {
     min-height: var(--elm-smart-select-height);
 }
-
-.elm-smart-select--disabled {
-    cursor: default;
-    opacity: .5;
-    border: 1px solid var(--elm-smart-select-border);
-    border-radius: var(--elm-smart-select-radius)
-}
-
-.elm-smart-select--enabled-closed {
-    cursor: pointer;
-    border: 1px solid var(--elm-smart-select-border);
-    border-radius: var(--elm-smart-select-radius);
-}
-
-.elm-smart-select--enabled-opened {
-    border: 1px solid var(--elm-smart-select-border);
-    border-radius: var(--elm-smart-select-radius);
-}
-
 
 .elm-smart-select--label-and-selector-container {
     position: relative;
@@ -46,43 +25,8 @@
     min-height: var(--elm-smart-select-height);
 }
 
-.elm-smart-select--container-wrapper {
-    padding: .25rem 0;
-}
-
-.elm-smart-select--options-container {
-    background: #fff;
-    z-index: 50;
-    border: 1px solid var(--elm-smart-select-border);
-    border-radius: var(--elm-smart-select-radius);
-    display: flex;
-}
-
-.elm-smart-select--options-container-below {
-    flex-direction: column;
-}
-
-.elm-smart-select--options-container-above {
-    flex-direction: column-reverse;
-}
-
 .elm-smart-select--invisible {
     visibility: hidden;
-}
-
-.elm-smart-select--single-selector-input-container {
-    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
-}
-
-.elm-smart-select--single-selector-input {
-    width: 100%;
-    outline: 0;
-    border: 1px solid var(--elm-smart-select-border);
-    border-radius: var(--elm-smart-select-radius);
-}
-
-.elm-smart-select--single-selector-input:focus {
-    border-color: var(--elm-smart-select-border-focused);
 }
 
 .elm-smart-select--multi-selected-and-results-container {
@@ -142,29 +86,6 @@
     overflow: auto;
 }
 
-.elm-smart-select--select-option {
-    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
-    cursor: pointer;
-}
-
-.elm-smart-select--select-option-focused {
-    background-color: var(--elm-smart-select-border-focused);
-    color: #fff;
-}
-
-.elm-smart-select--select-option-description {
-    font-size: .875rem;
-    padding: .25rem;
-}
-
-.elm-smart-select--select-option-description-unfocused {
-    color: #4a5568;
-}
-
-.elm-smart-select--select-option-description-focused {
-    color: var(--elm-smart-select-background);
-}
-
 .elm-smart-select--error-box-container {
     padding: 0.5rem;
 }
@@ -187,4 +108,129 @@
 
 .elm-smart-select--dismiss-error-x {
     cursor: pointer;
+}
+
+/*
+ * 
+ * VIEW COMPONENTS
+ *
+ */
+
+
+/* Text field */
+
+.elm-smart-select--text-field {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+    overflow: hidden;
+    background-color: var(--elm-smart-select-background);
+    border: 1px solid #ddd;
+    border-radius: var(--elm-smart-select-radius);
+    padding-right: 0.5rem;
+    cursor: text;
+    transition: all ease-in-out 200ms;
+}
+
+.elm-smart-select--text-field:hover {
+    border-color: #bbb;
+}
+
+.elm-smart-select--text-field:focus-within {
+    border-color: rgb(49, 130, 206);
+}
+
+.elm-smart-select--text-field:hover > .elm-smart-select--text-field__icon_x {
+    opacity: 1;
+}
+
+.elm-smart-select--text-field > input {
+    flex-grow: 1;
+    outline: none;
+    border: none;
+    border-radius: 0;
+    min-height: var(--elm-smart-select-height);
+    padding: 0.5rem 0.5rem;
+    background-color: transparent;
+}
+
+.elm-smart-select--text-field__icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    color: grey;
+    transition: all ease-in-out 200ms;
+}
+
+.elm-smart-select--text-field__icon:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+.elm-smart-select--text-field__icon_x {
+    transition: all ease-in-out 200ms;
+    opacity: 0;
+}
+
+/* Utilities */
+
+.elm-smart-select--disabled {
+    cursor: default;
+    opacity: .5;
+    pointer-events: none;
+}
+
+/* Options List */
+
+.elm-smart-select--options-list {
+    width: 100%;
+    overflow: auto;
+}
+
+.elm-smart-select--options-list-item {
+    padding: 0.25rem 0.5rem 0.25rem 0.5rem;
+    cursor: pointer;
+    transition: background-color ease-in-out 200ms;
+}
+
+.elm-smart-select--options-list-item-focused {
+    background-color: rgba(49, 130, 206, 0.15);
+}
+
+.elm-smart-select--options-list-item-selected {
+    background-color: rgba(49, 130, 206, 1);
+    color: #fff;
+}
+
+.elm-smart-select--options-list-item-description {
+    font-size: .75rem;
+    opacity: 0.5;
+}
+
+
+/* Alignment */
+
+.elm-smart-select--container-wrapper {
+    padding: .25rem 0;
+}
+
+/* TODO: check this class, it's test related */
+.elm-smart-select--options-container {
+    background: #fff;
+    z-index: 50;
+    border: 1px solid var(--elm-smart-select-border);
+    border-radius: var(--elm-smart-select-radius);
+    display: flex;
+}
+
+.elm-smart-select--options-container-below {
+    flex-direction: column;
+}
+
+.elm-smart-select--options-container-above {
+    flex-direction: column-reverse;
 }

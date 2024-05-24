@@ -33,6 +33,7 @@ import Browser.Dom as Dom exposing (Element)
 import Html exposing (Html, div)
 import Html.Attributes as Attrs
 import SmartSelect.Id as Id
+import SmartSelect.Utilities exposing (classPrefix)
 import Task exposing (Task)
 import Task.Extra as TaskExtra
 
@@ -115,32 +116,32 @@ style alignment =
             ]
 
 
-containerClass : String -> Maybe Alignment -> String
-containerClass classPrefix alignment =
+containerClass : Maybe Alignment -> String
+containerClass alignment =
     case alignment of
         Just (Alignment _ Below) ->
-            classPrefix ++ "options-container-below"
+            classPrefix "options-container-below"
 
         Just (Alignment _ Above) ->
-            classPrefix ++ "options-container-above"
+            classPrefix "options-container-above"
 
         Nothing ->
-            classPrefix ++ "options-container-below"
+            classPrefix "options-container-below"
 
 
-view : Id.Prefix -> String -> Maybe Alignment -> List (Html msg) -> Html msg
-view prefix classPrefix alignment children =
+view : Id.Prefix -> Maybe Alignment -> List (Html msg) -> Html msg
+view prefix alignment children =
     div
         (Attrs.id (Id.container prefix)
-            :: Attrs.class (classPrefix ++ "container-wrapper")
+            :: Attrs.class (classPrefix "container-wrapper")
             :: style alignment
         )
         [ div
             [ Attrs.class
                 (String.join
                     " "
-                    [ classPrefix ++ "options-container"
-                    , containerClass classPrefix alignment
+                    [ classPrefix "options-container"
+                    , containerClass alignment
                     ]
                 )
             ]
