@@ -1,5 +1,6 @@
 module SmartSelect.ViewComponents exposing
     ( viewEmptyOptionsListItem
+    , viewError
     , viewOptionsList
     , viewOptionsListItem
     , viewTextField
@@ -8,6 +9,7 @@ module SmartSelect.ViewComponents exposing
 
 import Html exposing (Html, div, input, span, text)
 import Html.Attributes exposing (class, classList, disabled)
+import Html.Events exposing (onClick)
 import SmartSelect.Icons as Icons
 import SmartSelect.Utilities exposing (classPrefix)
 
@@ -87,4 +89,23 @@ viewIcon attrs icon =
             |> Icons.withSize 16
             |> Icons.withStrokeWidth 2
             |> Icons.toHtml []
+        ]
+
+
+viewError : List (Html.Attribute msg) -> { message : String, onDismiss : msg } -> Html msg
+viewError attrs { message, onDismiss } =
+    div (class (classPrefix "error-box-container") :: attrs)
+        [ div [ class (classPrefix "error-box") ]
+            [ div [ class (classPrefix "error-container") ]
+                [ text message ]
+            , span
+                [ class (classPrefix "dismiss-error-x")
+                , onClick onDismiss
+                ]
+                [ Icons.x
+                    |> Icons.withSize 12
+                    |> Icons.withStrokeWidth 4
+                    |> Icons.toHtml []
+                ]
+            ]
         ]

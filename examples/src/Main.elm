@@ -181,6 +181,7 @@ viewNavigation =
     div [ class "navigation" ]
         [ div [] [ text "Examples" ]
         , viewPageLink "SingleSelect" "/"
+        , viewPageLink "SingleSelectRemote" "/remote"
         , viewPageLink "MultiSelect" "/multi"
         ]
 
@@ -231,6 +232,7 @@ changePageTo url model =
         parser =
             Parser.oneOf
                 [ Parser.map (SingleSelectExample.init |> toPage SingleSelect SingleSelectMsg) Parser.top
+                , Parser.map (SingleSelectRemoteExample.init |> toPage SingleSelectRemote SingleSelectRemoteMsg) (Parser.s "remote")
                 , Parser.map (MultiSelectExample.init |> toPage MultiSelect MultiSelectMsg) (Parser.s "multi")
                 ]
     in

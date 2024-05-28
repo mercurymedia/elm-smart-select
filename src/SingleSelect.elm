@@ -338,7 +338,7 @@ view { selected, options, optionLabelFn } smartSelect =
                 \searchText allOptions ->
                     List.filter (\option -> String.contains (String.toLower searchText) (String.toLower <| optionLabelFn option)) allOptions
             , selectTitle = ""
-            , searchPrompt = ""
+            , searchPrompt = "Placeholder..."
             , noResultsForMsg = \_ -> "No results"
             , noOptionsMsg = ""
             }
@@ -446,7 +446,7 @@ viewCustom :
 viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, selectTitle, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     let
         selectedLabel =
-            Maybe.map (\s -> optionLabelFn s) selected |> Maybe.withDefault selectTitle
+            Maybe.map (\s -> optionLabelFn s) selected |> Maybe.withDefault ""
 
         inputValue =
             case ( selected, model.isOpen ) of

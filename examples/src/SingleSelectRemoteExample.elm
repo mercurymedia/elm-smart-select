@@ -1,51 +1,52 @@
 module SingleSelectRemoteExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, div, form, input, p, text)
-import Html.Attributes exposing (id, style)
+import Html exposing (Html, button, div, form, input, p, text, h1, a)
+import Html.Attributes exposing (id, style, target, href)
 import Html.Events exposing (onSubmit)
-import SingleSelect
+import Http
+import Json.Decode as Decode exposing (Decoder)
+import SingleSelectRemote
 
 
 type alias Product =
-    { id : Int
-    , name : String
-    , price : String
+    { name : String
     }
 
 
 type alias Model =
-    { products : List Product
-    , select : SingleSelect.SmartSelect Msg Product
-    , selectedProduct : Maybe Product
+    { select : SingleSelectRemote.SmartSelect Msg Product
+    , selectedOption : Maybe Product
     , wasFormSubmitted : Bool
     }
 
 
 type Msg
-    = HandleSelectUpdate (SingleSelect.Msg Product)
-    | HandleSelection ( Maybe Product, SingleSelect.Msg Product )
-    | HandleFormSubmission
+    = HandleFormSubmission
+    | GotOptionSelected ( Maybe Product, SingleSelectRemote.Msg Product )
+    | SelectUpdated (SingleSelectRemote.Msg Product)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        HandleSelectUpdate sMsg ->
-            let
-                ( updatedSelect, selectCmd ) =
-                    SingleSelect.update sMsg model.select
-            in
-            ( { model | select = updatedSelect }, selectCmd )
+        GotOptionSelected ( selectedOption, sMsg )  ->
+          let
+            ( updatedSelect, selectCmd ) =
+                SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+          in
+          ( { model | select = updatedSelect, selectedOption = selectedOption }, selectCmd )
 
-        HandleSelection ( selection, sMsg ) ->
-            let
-                ( updatedSelect, selectCmd ) =
-                    SingleSelect.update sMsg model.select
-            in
-            ( { model | selectedProduct = selection, select = updatedSelect }, selectCmd )
+        SelectUpdated sMsg ->
+          let
+            ( updatedSelect, selectCmd ) =
+                SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+          in
+          ( { model | select = updatedSelect }, selectCmd )
 
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
+
+          
 
 
 view : Model -> Html Msg
@@ -55,7 +56,8 @@ view model =
         , style "height" "100vh"
         , style "padding" "3rem"
         ]
-        [ div
+        [ h1 [] [ text "SingleSelectRemote Example"]
+        , div
             [ style "margin-bottom" "1rem"
             ]
             [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
@@ -69,67 +71,32 @@ view model =
                 )
             ]
         , form [ onSubmit HandleFormSubmission ]
-            [ input [ style "margin-bottom" "20rem" ] []
-            , p [] [ text "The select will automatically open to the top, if there is not enought space." ]
+            [ input [ style "margin-bottom" "2rem" ] []
+            , p [] 
+                [ text "Search for languages from "
+                , a [ style "color" "#3182ce", target "_blank", href "https://freetestapi.com/apis/languages" ] 
+                    [ text "https://freetestapi.com/apis/languages" ]
+                , text "."
+                ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
+                [ SingleSelectRemote.view { selected = model.selectedOption, optionLabelFn = .name } model.select ]
             , button [] [ text "Submit" ]
             ]
         ]
 
 
-exampleProducts : List Product
-exampleProducts =
-    [ { id = 1
-      , name = "product 1"
-      , price = "$3.00"
-      }
-    , { id = 2
-      , name = "product 2"
-      , price = "$5.00"
-      }
-    , { id = 3
-      , name = "product 3"
-      , price = "$7.00"
-      }
-    , { id = 4
-      , name = "product 4"
-      , price = "$3.00"
-      }
-    , { id = 5
-      , name = "product 5"
-      , price = "$5.00"
-      }
-    , { id = 6
-      , name = "product 6"
-      , price = "$7.00"
-      }
-    , { id = 7
-      , name = "product 7"
-      , price = "$3.00"
-      }
-    , { id = 8
-      , name = "product 8"
-      , price = "$5.00"
-      }
-    , { id = 9
-      , name = "product 9"
-      , price = "$7.00"
-      }
-    ]
-
-
 init : ( Model, Cmd Msg )
 init =
-    ( { products = exampleProducts
-      , select =
-            SingleSelect.init
-                { selectionMsg = HandleSelection
-                , internalMsg = HandleSelectUpdate
-                , idPrefix = "single-select"
-                }
-      , selectedProduct = Nothing
+    ( { select =
+          SingleSelectRemote.init
+            { characterSearchThreshold = 2
+            , debounceDuration = 1000
+            , selectionMsg = GotOptionSelected
+            , internalMsg = SelectUpdated
+            , idPrefix = "single-select-remote"
+            }
+      , selectedOption = Nothing
       , wasFormSubmitted = False
       }
     , Cmd.none
@@ -138,4 +105,17 @@ init =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    SingleSelect.subscriptions model.select
+    SingleSelectRemote.subscriptions model.select
+
+
+httpRemoteSearchAttrs : { headers : List Http.Header, url : String -> String, optionDecoder : Decoder Product }
+httpRemoteSearchAttrs =
+    { headers = []
+    , url = \param -> "https://freetestapi.com/api/v1/languages?search=" ++ param
+    , optionDecoder = optionDecoder
+    }
+
+optionDecoder : Decoder Product
+optionDecoder =
+    Decode.map (\name -> { name = name })
+      (Decode.field "name" Decode.string)

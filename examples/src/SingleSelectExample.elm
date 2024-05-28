@@ -1,6 +1,6 @@
 module SingleSelectExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, div, form, input, p, text)
+import Html exposing (Html, button, h1, div, form, input, p, text)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
 import SingleSelect
@@ -55,7 +55,8 @@ view model =
         , style "height" "100vh"
         , style "padding" "3rem"
         ]
-        [ div
+        [ h1 [] [ text "SingleSelect Example"]
+        , div
             [ style "margin-bottom" "1rem"
             ]
             [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
@@ -69,7 +70,7 @@ view model =
                 )
             ]
         , form [ onSubmit HandleFormSubmission ]
-            [ input [ style "margin-bottom" "20rem" ] []
+            [ input [ style "margin-bottom" "2rem" ] []
             , p [] [ text "The select will automatically open to the top, if there is not enought space." ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
