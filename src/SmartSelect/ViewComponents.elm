@@ -76,8 +76,10 @@ viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isD
         )
         (selectedOptions
             ++ [ input (disabled isDisabled :: inputAttributes) []
-               , viewIcon (class (classPrefix "text-field__icon_x") :: clearIconAttributes) Icons.x
-               , viewIcon [ class (classPrefix "text-field__icon_chevron") ] Icons.chevronDown
+               , div [ class (classPrefix "text-field__icons") ]
+                    [ viewIcon (class (classPrefix "text-field__icon_x") :: clearIconAttributes) Icons.x
+                    , viewIcon [ class (classPrefix "text-field__icon_chevron") ] Icons.chevronDown
+                    ]
                ]
         )
 

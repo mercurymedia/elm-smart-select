@@ -137,7 +137,7 @@
     border-color: rgb(49, 130, 206);
 }
 
-.elm-smart-select--text-field:hover > .elm-smart-select--text-field__icon_x {
+.elm-smart-select--text-field:hover .elm-smart-select--text-field__icon_x {
     opacity: 1;
 }
 
@@ -154,6 +154,12 @@
 
 .elm-smart-select--text-field > input:placeholder-shown {
     text-overflow: ellipsis;
+}
+
+.elm-smart-select--text-field__icons {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
 }
 
 .elm-smart-select--text-field__icon {

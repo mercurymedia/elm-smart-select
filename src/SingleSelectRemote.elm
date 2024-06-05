@@ -1,4 +1,7 @@
-module SingleSelectRemote exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update)
+module SingleSelectRemote exposing
+    ( SmartSelect, Msg, init, view, viewCustom, subscriptions, update
+    , showSpinner
+    )
 
 {-| A select component for a single selection with remote data.
 
@@ -9,7 +12,7 @@ module SingleSelectRemote exposing (SmartSelect, Msg, init, view, viewCustom, su
 
 -}
 
-import Browser.Dom as Dom exposing (Element)
+import Browser.Dom as Dom
 import Browser.Events
 import Color
 import Debounce exposing (Debounce)
@@ -24,7 +27,7 @@ import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Errors as Errors
 import SmartSelect.Icons as Icons
 import SmartSelect.Id as Id exposing (Prefix(..))
-import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs)
+import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs, classPrefix)
 import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
 import Spinner
 import Task
@@ -70,7 +73,6 @@ type Msg a
     | SpinnerMsg Spinner.Msg
     | GotRemoteData (RemoteData Http.Error (List a))
     | WindowResized ( Int, Int )
-    | MaybeGotSelect (Result Dom.Error Element)
     | DismissError
     | Open String
     | GotAlignment (Result Dom.Error Alignment)
@@ -106,26 +108,6 @@ init { selectionMsg, internalMsg, characterSearchThreshold, debounceDuration, id
         }
 
 
-smartSelectId : Prefix -> String
-smartSelectId (Prefix prefix) =
-    prefix ++ "-smart-select-component"
-
-
-smartSelectInputId : Prefix -> String
-smartSelectInputId (Prefix prefix) =
-    prefix ++ "-smart-select-input"
-
-
-smartSelectContainerId : Prefix -> String
-smartSelectContainerId (Prefix prefix) =
-    prefix ++ "-smart-select-container"
-
-
-optionId : Prefix -> Int -> String
-optionId (Prefix prefix) idx =
-    prefix ++ "-option-" ++ String.fromInt idx
-
-
 {-| Events external to the smart select to which it is subscribed.
 -}
 subscriptions : SmartSelect msg a -> Sub msg
@@ -146,7 +128,7 @@ subscriptions (SmartSelect model) =
 
                 _ ->
                     Sub.none
-            , Browser.Events.onMouseDown (clickedOutsideSelect (smartSelectId model.idPrefix) model.internalMsg)
+            , Browser.Events.onMouseDown (clickedOutsideSelect (Id.select model.idPrefix) model.internalMsg)
             ]
 
     else
@@ -298,18 +280,6 @@ update msg remoteQueryAttrs (SmartSelect model) =
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
 
-        MaybeGotSelect result ->
-            case result of
-                Ok component ->
-                    let
-                        selectWidth =
-                            component.element |> (\el -> el.width)
-                    in
-                    ( SmartSelect { model | selectWidth = selectWidth }, focusInput model.idPrefix model.internalMsg )
-
-                Err _ ->
-                    ( SmartSelect model, Cmd.none )
-
         DismissError ->
             case model.remoteData of
                 Failure _ ->
@@ -366,12 +336,12 @@ openPopover (SmartSelect model) searchText =
 
 focusInput : Prefix -> (Msg a -> msg) -> Cmd msg
 focusInput prefix internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (smartSelectInputId prefix))
+    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (Id.input prefix))
 
 
 blurInput : Prefix -> (Msg a -> msg) -> Cmd msg
 blurInput prefix internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.blur (smartSelectInputId prefix))
+    Task.attempt (\_ -> internalMsg NoOp) (Dom.blur (Id.input prefix))
 
 
 getAlignment : Prefix -> (Msg a -> msg) -> Cmd msg
@@ -388,22 +358,22 @@ scrollToOption internalMsg prefix idx =
 scrollTask : Prefix -> Int -> Task.Task Dom.Error ()
 scrollTask prefix idx =
     Task.sequence
-        [ Dom.getElement (optionId prefix idx) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (optionId prefix idx) |> Task.map (\x -> x.element.height)
-        , Dom.getElement (smartSelectContainerId prefix) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (smartSelectContainerId prefix) |> Task.map (\x -> x.element.height)
-        , Dom.getViewportOf (smartSelectContainerId prefix) |> Task.map (\x -> x.viewport.y)
+        [ Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.height)
+        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.y)
+        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.height)
+        , Dom.getViewportOf (Id.container prefix) |> Task.map (\x -> x.viewport.y)
         ]
         |> Task.andThen
             (\outcome ->
                 case outcome of
                     optionY :: optionHeight :: containerY :: containerHeight :: containerScrollTop :: [] ->
                         if (optionY + optionHeight) >= containerY + containerHeight then
-                            Dom.setViewportOf (smartSelectContainerId prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
+                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else if optionY < containerY then
-                            Dom.setViewportOf (smartSelectContainerId prefix) 0 (containerScrollTop + (optionY - containerY))
+                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + (optionY - containerY))
                                 |> Task.onError (\_ -> Task.succeed ())
 
                         else
@@ -414,14 +384,9 @@ scrollTask prefix idx =
             )
 
 
-classPrefix : String
-classPrefix =
-    "elm-smart-select--"
-
-
 showSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html msg
 showSpinner { spinner, spinnerColor } =
-    div [ class (classPrefix ++ "loading-spinner-container") ] [ div [ class (classPrefix ++ "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig spinnerColor) spinner ] ]
+    div [ class (classPrefix "loading-spinner-container") ] [ div [ class (classPrefix "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig spinnerColor) spinner ] ]
 
 
 showOptions :
@@ -441,7 +406,7 @@ showOptions :
     -> Html msg
 showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, searchText, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix } =
     viewOptionsList
-        [ id (smartSelectContainerId idPrefix)
+        [ id (Id.container idPrefix)
         , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
         ]
         (if List.isEmpty options && searchText /= "" then
@@ -461,7 +426,7 @@ showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, sea
                     viewOptionsListItem
                         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( Just option, Close ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
-                        , id <| optionId idPrefix idx
+                        , id <| Id.option idPrefix idx
                         ]
                         { label = optionLabelFn option
                         , description = optionDescriptionFn option
@@ -509,9 +474,9 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
                             showSpinner { spinner = spinner, spinnerColor = spinnerColor }
 
                         else
-                            div [ class (classPrefix ++ "search-prompt") ] [ text <| characterThresholdPrompt difference ]
+                            div [ class (classPrefix "search-prompt") ] [ text <| characterThresholdPrompt difference ]
                 in
-                div [ class (classPrefix ++ "search-prompt-container") ] [ searchPrompt ]
+                div [ class (classPrefix "search-prompt-container") ] [ searchPrompt ]
 
         Loading ->
             showSpinner { spinner = spinner, spinnerColor = spinnerColor }
@@ -533,21 +498,8 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
                 }
 
         Failure _ ->
-            div [ class (classPrefix ++ "error-box-container") ]
-                [ div [ class (classPrefix ++ "error-box") ]
-                    [ div [ class (classPrefix ++ "error-container") ]
-                        [ text queryErrorMsg ]
-                    , span
-                        [ class (classPrefix ++ "dismiss-error-x")
-                        , onClick <| internalMsg DismissError
-                        ]
-                        [ Icons.x
-                            |> Icons.withSize 12
-                            |> Icons.withStrokeWidth 4
-                            |> Icons.toHtml []
-                        ]
-                    ]
-                ]
+            viewError []
+                { message = queryErrorMsg, onDismiss = internalMsg DismissError }
 
 
 indexOptions : List a -> List ( Int, a )
@@ -700,10 +652,10 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsCo
                     model.searchText
     in
     viewTextFieldContainer
-        [ id (smartSelectId model.idPrefix)
+        [ id (Id.select model.idPrefix)
         , classList
-            [ ( classPrefix ++ "enabled-closed", not model.isOpen )
-            , ( classPrefix ++ "enabled-opened", model.isOpen )
+            [ ( classPrefix "enabled-closed", not model.isOpen )
+            , ( classPrefix "enabled-opened", model.isOpen )
             ]
         , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
         , Events.preventDefaultOn "keydown"
@@ -717,7 +669,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsCo
         ]
         [ viewTextField [ onClick <| model.internalMsg <| Open selectedLabel ]
             { inputAttributes =
-                [ id (smartSelectInputId model.idPrefix)
+                [ id (Id.input model.idPrefix)
                 , autocomplete False
                 , onInput <| handleOnInput model.selectionMsg model.internalMsg
                 , placeholder <| searchPrompt

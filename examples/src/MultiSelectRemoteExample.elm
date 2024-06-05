@@ -1,11 +1,11 @@
-module SingleSelectRemoteExample exposing (Model, Msg, init, subscriptions, update, view)
+module MultiSelectRemoteExample exposing (Model, Msg, init, subscriptions, update, view)
 
 import Html exposing (Html, button, div, form, input, p, text, h1, a)
 import Html.Attributes exposing (id, style, target, href)
 import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
-import SingleSelectRemote
+import MultiSelectRemote
 
 
 type alias Language =
@@ -14,39 +14,42 @@ type alias Language =
 
 
 type alias Model =
-    { select : SingleSelectRemote.SmartSelect Msg Language
-    , selectedOption : Maybe Language
+    { select : MultiSelectRemote.SmartSelect Msg Language
+    , selectedOptions : List Language
     , wasFormSubmitted : Bool
     }
 
 
 type Msg
     = HandleFormSubmission
-    | GotOptionSelected ( Maybe Language, SingleSelectRemote.Msg Language )
-    | SelectUpdated (SingleSelectRemote.Msg Language)
+    | GotOptionSelected ( List Language, MultiSelectRemote.Msg Language )
+    | SelectUpdated (MultiSelectRemote.Msg Language)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotOptionSelected ( selectedOption, sMsg )  ->
+        GotOptionSelected ( selectedOptions, sMsg )  ->
           let
             ( updatedSelect, selectCmd ) =
-                SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+                MultiSelectRemote.update sMsg httpRemoteSearchAttrs model.select
           in
-          ( { model | select = updatedSelect, selectedOption = selectedOption }, selectCmd )
+          ( { model | select = updatedSelect, selectedOptions = selectedOptions }, selectCmd )
 
         SelectUpdated sMsg ->
           let
             ( updatedSelect, selectCmd ) =
-                SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+                MultiSelectRemote.update sMsg httpRemoteSearchAttrs model.select
           in
           ( { model | select = updatedSelect }, selectCmd )
 
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
-          
+viewSelectedLanguage : Language -> Html Msg
+viewSelectedLanguage lang =
+    div [ style "padding" ".25rem", style "cursor" "pointer", style "background-color" "#edf2f7", style "border" "1px solid #a0aec0" ]
+        [ text lang.name ]
 
 
 view : Model -> Html Msg
@@ -60,7 +63,7 @@ view model =
         , div
             [ style "margin-bottom" "1rem"
             ]
-            [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
+            [ text "This form contains a multi select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
         , div [ id "form-submission-status", style "margin-bottom" "1rem" ]
             [ text
                 (if model.wasFormSubmitted then
@@ -80,7 +83,7 @@ view model =
                 ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ SingleSelectRemote.view { selected = model.selectedOption, optionLabelFn = .name } model.select ]
+                [ MultiSelectRemote.view { selected = model.selectedOptions, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedLanguage } model.select ]
             , button [] [ text "Submit" ]
             ]
         ]
@@ -89,14 +92,14 @@ view model =
 init : ( Model, Cmd Msg )
 init =
     ( { select =
-          SingleSelectRemote.init
+          MultiSelectRemote.init
             { characterSearchThreshold = 2
             , debounceDuration = 1000
             , selectionMsg = GotOptionSelected
             , internalMsg = SelectUpdated
-            , idPrefix = "single-select-remote"
+            , idPrefix = "multi-select-remote"
             }
-      , selectedOption = Nothing
+      , selectedOptions = []
       , wasFormSubmitted = False
       }
     , Cmd.none
@@ -105,7 +108,7 @@ init =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    SingleSelectRemote.subscriptions model.select
+    MultiSelectRemote.subscriptions model.select
 
 
 httpRemoteSearchAttrs : { headers : List Http.Header, url : String -> String, optionDecoder : Decoder Language }
