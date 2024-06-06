@@ -1,5 +1,6 @@
 module SmartSelect.ViewComponents exposing
-    ( viewEmptyOptionsListItem
+    ( classPrefix
+    , viewEmptyOptionsListItem
     , viewError
     , viewOptionsList
     , viewOptionsListItem
@@ -11,7 +12,11 @@ import Html exposing (Html, div, input, span, text)
 import Html.Attributes exposing (class, classList, disabled)
 import Html.Events exposing (onClick)
 import SmartSelect.Icons as Icons
-import SmartSelect.Utilities exposing (classPrefix)
+
+
+classPrefix : String -> String
+classPrefix class =
+    "elm-smart-select--" ++ class
 
 
 viewTextFieldContainer : List (Html.Attribute msg) -> List (Html msg) -> Html msg

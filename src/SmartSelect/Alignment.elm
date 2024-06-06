@@ -33,7 +33,7 @@ import Browser.Dom as Dom exposing (Element)
 import Html exposing (Html, div)
 import Html.Attributes as Attrs
 import SmartSelect.Id as Id
-import SmartSelect.Utilities exposing (classPrefix)
+import SmartSelect.ViewComponents exposing (classPrefix)
 import Task exposing (Task)
 import Task.Extra as TaskExtra
 

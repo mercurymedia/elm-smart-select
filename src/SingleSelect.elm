@@ -12,17 +12,18 @@ module SingleSelect exposing (SmartSelect, Msg, init, view, subscriptions, updat
 import Browser.Dom as Dom
 import Browser.Events
 import Dict
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
+import Html exposing (Html, text)
+import Html.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
 import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Id as Id exposing (Prefix(..))
-import SmartSelect.Utilities as Utilities exposing (KeyCode(..), classPrefix)
+import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
 import SmartSelect.ViewComponents
     exposing
-        ( viewEmptyOptionsListItem
+        ( classPrefix
+        , viewEmptyOptionsListItem
         , viewOptionsList
         , viewOptionsListItem
         , viewTextField

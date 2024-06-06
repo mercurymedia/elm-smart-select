@@ -23,8 +23,8 @@ import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Errors as Errors
 import SmartSelect.Id as Id exposing (Prefix(..))
-import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs, classPrefix)
-import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
+import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs)
+import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
 import Spinner
 import Task
 

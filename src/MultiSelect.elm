@@ -19,8 +19,8 @@ import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Id as Id exposing (Prefix(..))
-import SmartSelect.Utilities as Utilities exposing (KeyCode(..), classPrefix)
-import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
+import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
+import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
 import Task
 
 

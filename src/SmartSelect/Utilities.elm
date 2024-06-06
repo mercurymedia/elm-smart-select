@@ -2,7 +2,6 @@ module SmartSelect.Utilities exposing
     ( KeyCode(..)
     , RemoteQueryAttrs
     , alwaysStopPropogation
-    , classPrefix
     , decodeOptions
     , eventIsOutsideComponent
     , newFocusedOptionIndexAfterSelection
@@ -24,11 +23,6 @@ import Color
 import Http exposing (Header)
 import Json.Decode as Decode exposing (Decoder)
 import Spinner
-
-
-classPrefix : String -> String
-classPrefix class =
-    "elm-smart-select--" ++ class
 
 
 {-| Fields to be provided to facilitate the external request. The function provided to url takes in searchText in the event it is necessary for the query.
