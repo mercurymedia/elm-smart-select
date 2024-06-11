@@ -26,7 +26,6 @@ import SmartSelect.Id as Id exposing (Prefix(..))
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs)
 import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
 import Spinner
-import Task
 
 
 {-| The opaque type representing a particular smart select instance.
@@ -119,24 +118,11 @@ subscriptions (SmartSelect model) =
 
                 _ ->
                     Sub.none
-            , Browser.Events.onMouseDown (clickedOutsideSelect (Id.select model.idPrefix) model.internalMsg)
+            , Browser.Events.onMouseDown (Utilities.clickedOutsideSelect (Id.select model.idPrefix) (model.internalMsg Close))
             ]
 
     else
         Sub.none
-
-
-clickedOutsideSelect : String -> (Msg a -> msg) -> Decode.Decoder msg
-clickedOutsideSelect componentId internalMsg =
-    Decode.field "target" (Utilities.eventIsOutsideComponent componentId)
-        |> Decode.andThen
-            (\isOutside ->
-                if isOutside then
-                    Decode.succeed <| internalMsg Close
-
-                else
-                    Decode.fail "inside component"
-            )
 
 
 keyActionMapper : { remoteData : RemoteData ( String, String ) (List a), selectedOptions : List a, focusedOptionIndex : Int, selectionMsg : ( List a, Msg a ) -> msg, internalMsg : Msg a -> msg, searchText : String } -> Decode.Decoder ( msg, Bool )
@@ -227,13 +213,13 @@ update msg remoteQueryAttrs (SmartSelect model) =
             ( SmartSelect model, Cmd.none )
 
         SetFocused idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, focusInput model.idPrefix model.internalMsg )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Utilities.focusInput model.idPrefix (model.internalMsg NoOp) )
 
         UpKeyPressed idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg model.idPrefix idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Utilities.scrollToOption (model.internalMsg NoOp) model.idPrefix idx )
 
         DownKeyPressed idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg model.idPrefix idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Utilities.scrollToOption (model.internalMsg NoOp) model.idPrefix idx )
 
         SetSearchText text ->
             if String.length text < model.characterSearchThreshold then
@@ -272,7 +258,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
             ( SmartSelect { model | focusedOptionIndex = 0, remoteData = RemoteData.mapError (Errors.httpErrorToReqErrTuple "GET") data }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getAlignment model.idPrefix model.internalMsg )
+            ( SmartSelect model, Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment)) )
 
         GotAlignment result ->
             case result of
@@ -288,7 +274,10 @@ update msg remoteQueryAttrs (SmartSelect model) =
                     Maybe.withDefault model.focusedOptionIndex newFocusedOptionIndex
             in
             ( SmartSelect { model | focusedOptionIndex = focusedOptionIndex }
-            , Cmd.batch [ getAlignment model.idPrefix model.internalMsg, focusInput model.idPrefix model.internalMsg ]
+            , Cmd.batch
+                [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+                , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+                ]
             )
 
         DismissError ->
@@ -315,7 +304,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
 
         Close ->
             ( SmartSelect { model | isOpen = False, searchText = "", alignment = Nothing, remoteData = NotAsked }
-            , blurInput model.idPrefix model.internalMsg
+            , Utilities.blurInput model.idPrefix (model.internalMsg NoOp)
             )
 
         Clear ->
@@ -339,60 +328,10 @@ openPopover : SmartSelect msg a -> String -> ( SmartSelect msg a, Cmd msg )
 openPopover (SmartSelect model) searchText =
     ( SmartSelect { model | isOpen = True, searchText = searchText, focusedOptionIndex = 0 }
     , Cmd.batch
-        [ getAlignment model.idPrefix model.internalMsg
-        , focusInput model.idPrefix model.internalMsg
+        [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+        , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
         ]
     )
-
-
-focusInput : Prefix -> (Msg a -> msg) -> Cmd msg
-focusInput prefix internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (Id.input prefix))
-
-
-blurInput : Prefix -> (Msg a -> msg) -> Cmd msg
-blurInput prefix internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.blur (Id.input prefix))
-
-
-getAlignment : Prefix -> (Msg a -> msg) -> Cmd msg
-getAlignment prefix internalMsg =
-    Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
-        (Alignment.getElements (Id.container prefix) (Id.select prefix))
-
-
-scrollToOption : (Msg a -> msg) -> Prefix -> Int -> Cmd msg
-scrollToOption internalMsg prefix idx =
-    Task.attempt (\_ -> internalMsg NoOp) (scrollTask prefix idx)
-
-
-scrollTask : Prefix -> Int -> Task.Task Dom.Error ()
-scrollTask prefix idx =
-    Task.sequence
-        [ Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.height)
-        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.height)
-        , Dom.getViewportOf (Id.container prefix) |> Task.map (\x -> x.viewport.y)
-        ]
-        |> Task.andThen
-            (\outcome ->
-                case outcome of
-                    optionY :: optionHeight :: containerY :: containerHeight :: containerScrollTop :: [] ->
-                        if (optionY + optionHeight) >= containerY + containerHeight then
-                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
-                                |> Task.onError (\_ -> Task.succeed ())
-
-                        else if optionY < containerY then
-                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + (optionY - containerY))
-                                |> Task.onError (\_ -> Task.succeed ())
-
-                        else
-                            Task.succeed ()
-
-                    _ ->
-                        Task.succeed ()
-            )
 
 
 showSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html msg

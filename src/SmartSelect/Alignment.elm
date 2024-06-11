@@ -2,7 +2,7 @@ module SmartSelect.Alignment exposing
     ( Alignment
     , init, getElements
     , style
-    , view
+    , getAlignment, view
     )
 
 {-| Determine the Alignment for the select options container
@@ -77,6 +77,12 @@ init { container, select, viewport } =
                 }
             )
             Below
+
+
+getAlignment : Id.Prefix -> (Result Dom.Error Alignment -> msg) -> Cmd msg
+getAlignment prefix onResponse =
+    Task.attempt onResponse
+        (getElements (Id.container prefix) (Id.select prefix))
 
 
 getElements : String -> String -> Task Dom.Error Alignment
