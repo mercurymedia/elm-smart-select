@@ -80,8 +80,8 @@ init { container, select, viewport } =
 
 
 getAlignment : Id.Prefix -> (Result Dom.Error Alignment -> msg) -> Cmd msg
-getAlignment prefix onResponse =
-    Task.attempt onResponse
+getAlignment prefix handleResponse =
+    Task.attempt handleResponse
         (getElements (Id.container prefix) (Id.select prefix))
 
 

@@ -24,7 +24,7 @@ import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Errors as Errors
 import SmartSelect.Id as Id exposing (Prefix(..))
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs)
-import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
+import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewSpinner, viewTextField, viewTextFieldContainer)
 import Spinner
 
 
@@ -239,7 +239,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
                 ( debounce, cmd ) =
                     Debounce.update
                         (debounceConfig { internalMsg = model.internalMsg, debounceDuration = model.debounceDuration })
-                        (Debounce.takeLast (search { remoteQueryAttrs = remoteQueryAttrs, internalMsg = model.internalMsg }))
+                        (Debounce.takeLast (Utilities.search { remoteQueryAttrs = remoteQueryAttrs, handleResponse = \remoteData -> model.internalMsg <| GotRemoteData remoteData }))
                         msg_
                         model.debounce
             in
@@ -292,7 +292,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
             let
                 cmd =
                     if model.characterSearchThreshold == 0 then
-                        search { remoteQueryAttrs = remoteQueryAttrs, internalMsg = model.internalMsg } ""
+                        Utilities.search { remoteQueryAttrs = remoteQueryAttrs, handleResponse = \remoteData -> model.internalMsg <| GotRemoteData remoteData } ""
 
                     else
                         Cmd.none
@@ -311,19 +311,6 @@ update msg remoteQueryAttrs (SmartSelect model) =
             openPopover (SmartSelect { model | remoteData = NotAsked }) ""
 
 
-search : { remoteQueryAttrs : RemoteQueryAttrs a, internalMsg : Msg a -> msg } -> String -> Cmd msg
-search { remoteQueryAttrs, internalMsg } searchText =
-    Http.request
-        { method = "GET"
-        , headers = remoteQueryAttrs.headers
-        , url = remoteQueryAttrs.url searchText
-        , body = Http.emptyBody
-        , expect = Http.expectJson (\results -> RemoteData.fromResult results |> (\remoteData -> internalMsg <| GotRemoteData remoteData)) (Utilities.decodeOptions remoteQueryAttrs.optionDecoder)
-        , timeout = Nothing
-        , tracker = Nothing
-        }
-
-
 openPopover : SmartSelect msg a -> String -> ( SmartSelect msg a, Cmd msg )
 openPopover (SmartSelect model) searchText =
     ( SmartSelect { model | isOpen = True, searchText = searchText, focusedOptionIndex = 0 }
@@ -332,11 +319,6 @@ openPopover (SmartSelect model) searchText =
         , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
         ]
     )
-
-
-showSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html msg
-showSpinner { spinner, spinnerColor } =
-    div [ class (classPrefix "loading-spinner-container") ] [ div [ class (classPrefix "loading-spinner") ] [ Spinner.view (Utilities.spinnerConfig spinnerColor) spinner ] ]
 
 
 showOptions :
@@ -407,7 +389,7 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
     case remoteData of
         NotAsked ->
             if characterSearchThreshold == 0 then
-                showSpinner { spinner = spinner, spinnerColor = spinnerColor }
+                viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
 
             else
                 let
@@ -416,7 +398,7 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
 
                     searchPrompt =
                         if difference == 0 then
-                            showSpinner { spinner = spinner, spinnerColor = spinnerColor }
+                            viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
 
                         else
                             div [ class (classPrefix "search-prompt") ] [ text <| characterThresholdPrompt difference ]
@@ -424,7 +406,7 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
                 div [ class (classPrefix "search-prompt-container") ] [ searchPrompt ]
 
         Loading ->
-            showSpinner { spinner = spinner, spinnerColor = spinnerColor }
+            viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
 
         Success options ->
             showOptions

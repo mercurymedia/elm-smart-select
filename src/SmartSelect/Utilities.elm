@@ -10,6 +10,7 @@ module SmartSelect.Utilities exposing
     , newFocusedOptionIndexAfterSelection
     , preventDefault
     , scrollToOption
+    , search
     , spinnerConfig
     , toKeyCode
     )
@@ -27,6 +28,7 @@ import Browser.Dom as Dom
 import Color
 import Http exposing (Header)
 import Json.Decode as Decode exposing (Decoder)
+import RemoteData exposing (RemoteData)
 import SmartSelect.Id as Id
 import Spinner
 import Task
@@ -188,6 +190,19 @@ toKeyCode string =
 
         _ ->
             Other
+
+
+search : { remoteQueryAttrs : RemoteQueryAttrs a, handleResponse : RemoteData Http.Error (List a) -> msg } -> String -> Cmd msg
+search { remoteQueryAttrs, handleResponse } searchText =
+    Http.request
+        { method = "GET"
+        , headers = remoteQueryAttrs.headers
+        , url = remoteQueryAttrs.url searchText
+        , body = Http.emptyBody
+        , expect = Http.expectJson (\results -> RemoteData.fromResult results |> handleResponse) (decodeOptions remoteQueryAttrs.optionDecoder)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 decodeOptions : Decoder a -> Decoder (List a)

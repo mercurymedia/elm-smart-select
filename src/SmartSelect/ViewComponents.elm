@@ -4,14 +4,17 @@ module SmartSelect.ViewComponents exposing
     , viewError
     , viewOptionsList
     , viewOptionsListItem
+    , viewSpinner
     , viewTextField
     , viewTextFieldContainer
     )
 
+import Color
 import Html exposing (Html, div, input, span, text)
 import Html.Attributes exposing (class, classList, disabled)
 import Html.Events exposing (onClick)
 import SmartSelect.Icons as Icons
+import Spinner
 
 
 classPrefix : String -> String
@@ -115,4 +118,33 @@ viewError attrs { message, onDismiss } =
                     |> Icons.toHtml []
                 ]
             ]
+        ]
+
+
+spinnerConfig : Color.Color -> Spinner.Config
+spinnerConfig color =
+    { lines = 10
+    , length = 5
+    , width = 3
+    , radius = 8
+    , scale = 0.75
+    , corners = 1
+    , opacity = 0.5
+    , rotate = 0
+    , direction = Spinner.Clockwise
+    , speed = 1
+    , trail = 60
+    , translateX = 50
+    , translateY = 50
+    , shadow = False
+    , hwaccel = True
+    , color = always color
+    }
+
+
+viewSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html msg
+viewSpinner { spinner, spinnerColor } =
+    div [ class (classPrefix "loading-spinner-container") ]
+        [ div [ class (classPrefix "loading-spinner") ]
+            [ Spinner.view (spinnerConfig spinnerColor) spinner ]
         ]
