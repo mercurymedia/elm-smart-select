@@ -1,6 +1,6 @@
 module MultiSelectExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, h1, div, form, input, text)
+import Html exposing (Html, button, div, form, h1, input, text)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
 import MultiSelect
@@ -57,7 +57,7 @@ viewSelectedProduct product =
 view : Model -> Html Msg
 view model =
     div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
-        [ h1 [] [ text "MultiSelect Example"]
+        [ h1 [] [ text "MultiSelect Example" ]
         , div [ style "margin-bottom" "1rem" ] [ text "This form contains a multi select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
         , div [ id "form-submission-status", style "margin-bottom" "1rem" ]
             [ text

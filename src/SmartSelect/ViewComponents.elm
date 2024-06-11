@@ -80,10 +80,10 @@ viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isD
             :: attrs
         )
         (selectedOptions
-            ++ [ input (disabled isDisabled :: inputAttributes) []
-               , div [ class (classPrefix "text-field__icons") ]
-                    [ viewIcon (class (classPrefix "text-field__icon_x") :: clearIconAttributes) Icons.x
-                    , viewIcon [ class (classPrefix "text-field__icon_chevron") ] Icons.chevronDown
+            ++ [ div [ class (classPrefix "text-field-input-container") ]
+                    [ input (disabled isDisabled :: inputAttributes) []
+                    , viewIcon (class (classPrefix "text-field-icon-x") :: clearIconAttributes) Icons.x
+                    , viewIcon [ class (classPrefix "text-field-icon-chevron") ] Icons.chevronDown
                     ]
                ]
         )
@@ -91,7 +91,7 @@ viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isD
 
 viewIcon : List (Html.Attribute msg) -> Icons.Icon -> Html msg
 viewIcon attrs icon =
-    span (class (classPrefix "text-field__icon") :: attrs)
+    span (class (classPrefix "text-field-icon") :: attrs)
         [ icon
             |> Icons.withSize 16
             |> Icons.withStrokeWidth 2

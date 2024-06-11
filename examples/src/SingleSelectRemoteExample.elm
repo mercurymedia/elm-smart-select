@@ -1,7 +1,7 @@
 module SingleSelectRemoteExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, div, form, input, p, text, h1, a)
-import Html.Attributes exposing (id, style, target, href)
+import Html exposing (Html, a, button, div, form, h1, input, p, text)
+import Html.Attributes exposing (href, id, style, target)
 import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
@@ -29,24 +29,22 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        GotOptionSelected ( selectedOption, sMsg )  ->
-          let
-            ( updatedSelect, selectCmd ) =
-                SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
-          in
-          ( { model | select = updatedSelect, selectedOption = selectedOption }, selectCmd )
+        GotOptionSelected ( selectedOption, sMsg ) ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+            in
+            ( { model | select = updatedSelect, selectedOption = selectedOption }, selectCmd )
 
         SelectUpdated sMsg ->
-          let
-            ( updatedSelect, selectCmd ) =
-                SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
-          in
-          ( { model | select = updatedSelect }, selectCmd )
+            let
+                ( updatedSelect, selectCmd ) =
+                    SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+            in
+            ( { model | select = updatedSelect }, selectCmd )
 
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
-
-          
 
 
 view : Model -> Html Msg
@@ -56,7 +54,7 @@ view model =
         , style "height" "100vh"
         , style "padding" "3rem"
         ]
-        [ h1 [] [ text "SingleSelectRemote Example"]
+        [ h1 [] [ text "SingleSelectRemote Example" ]
         , div
             [ style "margin-bottom" "1rem"
             ]
@@ -72,9 +70,9 @@ view model =
             ]
         , form [ onSubmit HandleFormSubmission ]
             [ input [ style "margin-bottom" "2rem" ] []
-            , p [] 
+            , p []
                 [ text "Search for languages from "
-                , a [ style "color" "#3182ce", target "_blank", href "https://freetestapi.com/apis/languages" ] 
+                , a [ style "color" "#3182ce", target "_blank", href "https://freetestapi.com/apis/languages" ]
                     [ text "https://freetestapi.com/apis/languages" ]
                 , text "."
                 ]
@@ -89,13 +87,13 @@ view model =
 init : ( Model, Cmd Msg )
 init =
     ( { select =
-          SingleSelectRemote.init
-            { characterSearchThreshold = 2
-            , debounceDuration = 1000
-            , selectionMsg = GotOptionSelected
-            , internalMsg = SelectUpdated
-            , idPrefix = "single-select-remote"
-            }
+            SingleSelectRemote.init
+                { characterSearchThreshold = 2
+                , debounceDuration = 1000
+                , selectionMsg = GotOptionSelected
+                , internalMsg = SelectUpdated
+                , idPrefix = "single-select-remote"
+                }
       , selectedOption = Nothing
       , wasFormSubmitted = False
       }
@@ -115,7 +113,8 @@ httpRemoteSearchAttrs =
     , optionDecoder = optionDecoder
     }
 
+
 optionDecoder : Decoder Language
 optionDecoder =
     Decode.map (\name -> { name = name })
-      (Decode.field "name" Decode.string)
+        (Decode.field "name" Decode.string)

@@ -681,7 +681,6 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
         [ viewTextField [ onClick <| model.internalMsg Open ]
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
-                , class (classPrefix "multi-input")
                 , autocomplete False
                 , onInput <| \val -> model.internalMsg <| SetSearchText val
                 , value model.searchText

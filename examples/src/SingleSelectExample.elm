@@ -1,6 +1,6 @@
 module SingleSelectExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, h1, div, form, input, p, text)
+import Html exposing (Html, button, div, form, h1, input, p, text)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
 import SingleSelect
@@ -55,7 +55,7 @@ view model =
         , style "height" "100vh"
         , style "padding" "3rem"
         ]
-        [ h1 [] [ text "SingleSelect Example"]
+        [ h1 [] [ text "SingleSelect Example" ]
         , div
             [ style "margin-bottom" "1rem"
             ]
@@ -74,7 +74,13 @@ view model =
             , p [] [ text "The select will automatically open to the top, if there is not enought space." ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
+                [ SingleSelect.view
+                    { selected = model.selectedProduct
+                    , options = model.products
+                    , optionLabelFn = .name
+                    }
+                    model.select
+                ]
             , button [] [ text "Submit" ]
             ]
         ]
