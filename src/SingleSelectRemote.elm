@@ -69,7 +69,7 @@ type Msg a
     | GotRemoteData (RemoteData Http.Error (List a))
     | WindowResized ( Int, Int )
     | DismissError
-    | Open String
+    | Open
     | GotAlignment (Result Dom.Error Alignment)
     | Close
     | Clear
@@ -270,7 +270,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
                 _ ->
                     ( SmartSelect model, Cmd.none )
 
-        Open selectedLabel ->
+        Open ->
             let
                 cmd =
                     if model.characterSearchThreshold == 0 then
@@ -280,7 +280,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
                         Cmd.none
 
                 ( updatedModel, popoverCmd ) =
-                    openPopover (SmartSelect model) selectedLabel
+                    openPopover (SmartSelect model)
             in
             ( updatedModel, Cmd.batch [ popoverCmd, cmd ] )
 
@@ -290,12 +290,12 @@ update msg remoteQueryAttrs (SmartSelect model) =
             )
 
         Clear ->
-            openPopover (SmartSelect { model | remoteData = NotAsked }) ""
+            openPopover (SmartSelect { model | remoteData = NotAsked })
 
 
-openPopover : SmartSelect msg a -> String -> ( SmartSelect msg a, Cmd msg )
-openPopover (SmartSelect model) searchText =
-    ( SmartSelect { model | isOpen = True, searchText = searchText, focusedOptionIndex = 0 }
+openPopover : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+openPopover (SmartSelect model) =
+    ( SmartSelect { model | isOpen = True, searchText = "", focusedOptionIndex = 0 }
     , Cmd.batch
         [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
         , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
@@ -581,7 +581,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsCo
                 }
             )
         ]
-        [ viewTextField [ onClick <| model.internalMsg <| Open selectedLabel ]
+        [ viewTextField [ onClick <| model.internalMsg <| Open ]
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
                 , autocomplete False

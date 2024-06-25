@@ -1,4 +1,4 @@
-module SingleSelect exposing (SmartSelect, Msg, init, view, subscriptions, update)
+module SingleSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update)
 
 {-| A select component for a single selection with local data.
 
@@ -58,7 +58,7 @@ type Msg a
     | SetSearchText String
     | WindowResized ( Int, Int )
     | GotAlignment (Result Dom.Error Alignment)
-    | Open String
+    | Open
     | Close
     | Clear
 
@@ -173,12 +173,12 @@ update msg (SmartSelect model) =
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
 
-        Open selectedLabel ->
+        Open ->
             if model.isOpen then
                 ( SmartSelect model, Cmd.none )
 
             else
-                openPopover (SmartSelect model) selectedLabel
+                openPopover (SmartSelect model)
 
         Close ->
             ( SmartSelect { model | isOpen = False, searchText = "", alignment = Nothing }
@@ -186,12 +186,12 @@ update msg (SmartSelect model) =
             )
 
         Clear ->
-            openPopover (SmartSelect model) ""
+            openPopover (SmartSelect model)
 
 
-openPopover : SmartSelect msg a -> String -> ( SmartSelect msg a, Cmd msg )
-openPopover (SmartSelect model) searchText =
-    ( SmartSelect { model | isOpen = True, searchText = searchText, focusedOptionIndex = 0 }
+openPopover : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+openPopover (SmartSelect model) =
+    ( SmartSelect { model | isOpen = True, searchText = "", focusedOptionIndex = 0 }
     , Cmd.batch
         [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
         , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
@@ -274,7 +274,6 @@ view { selected, options, optionLabelFn } smartSelect =
             , searchFn =
                 \searchText allOptions ->
                     List.filter (\option -> String.contains (String.toLower searchText) (String.toLower <| optionLabelFn option)) allOptions
-            , selectTitle = ""
             , searchPrompt = "Placeholder..."
             , noResultsForMsg = \_ -> "No results"
             , noOptionsMsg = ""
@@ -373,18 +372,14 @@ viewCustom :
     , optionDescriptionFn : a -> String
     , optionsContainerMaxHeight : Float
     , searchFn : String -> List a -> List a
-    , selectTitle : String
     , searchPrompt : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, selectTitle, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     let
-        selectedLabel =
-            Maybe.map (\s -> optionLabelFn s) selected |> Maybe.withDefault ""
-
         inputValue =
             case ( selected, model.isOpen ) of
                 ( Just value, False ) ->
@@ -409,7 +404,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                 }
             )
         ]
-        [ viewTextField [ onClick <| model.internalMsg <| Open selectedLabel ]
+        [ viewTextField [ onClick <| model.internalMsg <| Open ]
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
                 , autocomplete False
