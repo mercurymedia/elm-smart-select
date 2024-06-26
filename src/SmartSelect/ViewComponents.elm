@@ -69,7 +69,7 @@ viewTextField :
     List (Html.Attribute msg)
     ->
         { inputAttributes : List (Html.Attribute msg)
-        , clearIconAttributes : List (Html.Attribute msg)
+        , clearIconAttributes : Maybe (List (Html.Attribute msg))
         , selectedOptions : List (Html msg)
         , isDisabled : Bool
         }
@@ -85,7 +85,12 @@ viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isD
         (selectedOptions
             ++ [ div [ class (classPrefix "text-field-input-container") ]
                     [ input (disabled isDisabled :: inputAttributes) []
-                    , viewIcon (class (classPrefix "text-field-icon-x") :: clearIconAttributes) Icons.x
+                    , case clearIconAttributes of
+                        Just clearAttrs ->
+                            viewIcon (class (classPrefix "text-field-icon-x") :: clearAttrs) Icons.x
+
+                        Nothing ->
+                            text ""
                     , viewIcon [ class (classPrefix "text-field-icon-chevron") ] Icons.chevronDown
                     ]
                ]

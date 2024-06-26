@@ -439,7 +439,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                         }
                     )
                     selected
-            , clearIconAttributes = [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], SelectionChanged Nothing ), True )) ]
+            , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], SelectionChanged Nothing ), True )) ]
             }
         , Alignment.view
             model.idPrefix

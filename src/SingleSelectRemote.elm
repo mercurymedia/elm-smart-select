@@ -437,12 +437,12 @@ view { selected, optionLabelFn } smartSelect =
             , optionDescriptionFn = \_ -> ""
             , optionsContainerMaxHeight = 300
             , spinnerColor = Color.rgb255 57 179 181
-            , selectTitle = ""
             , searchPrompt = "Placeholder..."
             , characterThresholdPrompt = \_ -> "Enter at least 2 characters to search.."
             , queryErrorMsg = "Error"
             , noResultsForMsg = \_ -> "No results"
             , noOptionsMsg = "No Options"
+            , clearable = True
             }
     in
     viewCustom config smartSelect
@@ -527,15 +527,6 @@ viewCustomProductSelect model =
 ```
 
 -}
-handleOnInput : (( Maybe a, Msg a ) -> msg) -> (Msg a -> msg) -> String -> msg
-handleOnInput selectionMsg internalMsg value =
-    if value == "" then
-        selectionMsg ( Nothing, Clear )
-
-    else
-        internalMsg <| SetSearchText value
-
-
 viewCustom :
     { isDisabled : Bool
     , selected : Maybe a
@@ -543,20 +534,17 @@ viewCustom :
     , optionDescriptionFn : a -> String
     , optionsContainerMaxHeight : Float
     , spinnerColor : Color.Color
-    , selectTitle : String
     , searchPrompt : String
     , characterThresholdPrompt : Int -> String
     , queryErrorMsg : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , clearable : Bool
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, selectTitle, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, clearable } (SmartSelect model) =
     let
-        selectedLabel =
-            Maybe.map (\s -> optionLabelFn s) selected |> Maybe.withDefault ""
-
         inputValue =
             case ( selected, model.isOpen ) of
                 ( Just value, False ) ->
@@ -564,6 +552,13 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsCo
 
                 ( _, _ ) ->
                     model.searchText
+
+        clearIconAttrs =
+            if clearable == True then
+                Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( Nothing, Clear ), True )) ]
+
+            else
+                Nothing
     in
     viewTextFieldContainer
         [ id (Id.select model.idPrefix)
@@ -585,13 +580,13 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsCo
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
                 , autocomplete False
-                , onInput <| handleOnInput model.selectionMsg model.internalMsg
+                , onInput <| \newValue -> model.internalMsg <| SetSearchText newValue
                 , placeholder <| searchPrompt
                 , value inputValue
                 ]
             , isDisabled = isDisabled
             , selectedOptions = []
-            , clearIconAttributes = [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( Nothing, Clear ), True )) ]
+            , clearIconAttributes = clearIconAttrs
             }
         , Alignment.view
             model.idPrefix
