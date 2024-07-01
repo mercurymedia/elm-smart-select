@@ -285,7 +285,15 @@ update msg remoteQueryAttrs (SmartSelect model) =
             )
 
         Clear ->
-            openPopover (SmartSelect { model | remoteData = NotAsked })
+            let
+                cmd =
+                    if model.isOpen then
+                        Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+
+                    else
+                        Cmd.none
+            in
+            ( SmartSelect { model | remoteData = NotAsked, searchText = "" }, cmd )
 
 
 openPopover : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )

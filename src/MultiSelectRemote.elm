@@ -308,7 +308,18 @@ update msg remoteQueryAttrs (SmartSelect model) =
             )
 
         Clear ->
-            openPopover (SmartSelect { model | remoteData = NotAsked }) ""
+            let
+                cmd =
+                    if model.isOpen then
+                        Cmd.batch
+                            [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+                            , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+                            ]
+
+                    else
+                        Cmd.none
+            in
+            ( SmartSelect { model | remoteData = NotAsked, searchText = "" }, cmd )
 
 
 openPopover : SmartSelect msg a -> String -> ( SmartSelect msg a, Cmd msg )
@@ -617,7 +628,7 @@ viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelec
                         }
                     )
                     selected
-            , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], SelectionChanged Nothing ), True )) ]
+            , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], Clear ), True )) ]
             }
         , Alignment.view
             model.idPrefix

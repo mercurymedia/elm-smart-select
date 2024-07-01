@@ -53,6 +53,7 @@ type Msg a
     | SelectionChanged (Maybe Int)
     | Open
     | Close
+    | Clear
 
 
 {-| Instantiates and returns a smart select.
@@ -206,6 +207,20 @@ update msg (SmartSelect model) =
 
             else
                 ( SmartSelect model, Cmd.none )
+
+        Clear ->
+            let
+                cmd =
+                    if model.isOpen then
+                        Cmd.batch
+                            [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+                            , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+                            ]
+
+                    else
+                        Cmd.none
+            in
+            ( SmartSelect { model | searchText = "" }, cmd )
 
 
 showOptions :
@@ -439,7 +454,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                         }
                     )
                     selected
-            , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], SelectionChanged Nothing ), True )) ]
+            , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], Clear ), True )) ]
             }
         , Alignment.view
             model.idPrefix

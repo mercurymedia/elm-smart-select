@@ -186,7 +186,15 @@ update msg (SmartSelect model) =
             )
 
         Clear ->
-            openPopover (SmartSelect model)
+            let
+                cmd =
+                    if model.isOpen then
+                        Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+
+                    else
+                        Cmd.none
+            in
+            ( SmartSelect { model | searchText = "" }, cmd )
 
 
 openPopover : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
