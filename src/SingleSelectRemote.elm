@@ -51,11 +51,6 @@ type alias Model msg a =
     }
 
 
-
--- type Prefix
---     = Prefix String
-
-
 {-| Opaque type representing cases to be passed to SingleSelectRemote.update
 -}
 type Msg a
