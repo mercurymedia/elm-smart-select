@@ -273,7 +273,7 @@ update msg remoteQueryAttrs (SmartSelect model) =
                 focusedOptionIndex =
                     Maybe.withDefault model.focusedOptionIndex newFocusedOptionIndex
             in
-            ( SmartSelect { model | focusedOptionIndex = focusedOptionIndex }
+            ( SmartSelect { model | isOpen = True, searchText = "", focusedOptionIndex = focusedOptionIndex }
             , Cmd.batch
                 [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
                 , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
