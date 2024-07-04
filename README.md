@@ -8,11 +8,11 @@ elm install mercurymedia/elm-smart-select
 
 #### Single Select
 
-![SingleSelect](https://user-images.githubusercontent.com/20546636/66810094-dace5480-ef2e-11e9-9e9a-df1fddb38dc6.gif)
+![singleselect](https://github.com/markus-mind/elm-smart-select/assets/32676430/92e3ed36-39c0-4e5d-bf21-b1e5b0f566ce)
 
 #### Multi Select
 
-![MultiSelect](https://user-images.githubusercontent.com/20546636/66810122-e1f56280-ef2e-11e9-9ac6-f2de80802a58.gif)
+![multiselect](https://github.com/markus-mind/elm-smart-select/assets/32676430/1ab8823a-a79b-4ce4-8cb7-f951a96ab070)
 
 ## Usage
 This package exposes four modules `SingleSelect`, `SingleSelectRemote`, `MultiSelect` and `MultiSelectRemote`. The `Single` pickers can be used to pick a single element while the `Multi` pickers are used to select a list of elements. The pickers without a suffix select from preloaded data whereas the `Remote` pickers query a remote source. To keep things simple, the documentation here focuses on the `SingleSelect`. **_Note:_** While the basic architecture across all of the modules is similar, certain functions may expect different arguments from one module to the next. Please refer to the specific module documentation for further details and information.
