@@ -41,7 +41,7 @@ type alias Model msg a =
     { isOpen : Bool
     , searchText : String
     , focusedOptionIndex : Int
-    , selectionMsg : ( Maybe a, Msg a ) -> msg
+    , selectionMsg : ( a, Msg a ) -> msg
     , internalMsg : Msg a -> msg
     , alignment : Maybe Alignment
     , idPrefix : Prefix
@@ -60,7 +60,6 @@ type Msg a
     | GotAlignment (Result Dom.Error Alignment)
     | Open
     | Close
-    | Clear
 
 
 {-| Instantiates and returns a smart select.
@@ -70,7 +69,7 @@ type Msg a
   - `idPrefix` takes a string with a unique prefix
 
 -}
-init : { selectionMsg : ( Maybe a, Msg a ) -> msg, internalMsg : Msg a -> msg, idPrefix : String } -> SmartSelect msg a
+init : { selectionMsg : ( a, Msg a ) -> msg, internalMsg : Msg a -> msg, idPrefix : String } -> SmartSelect msg a
 init { selectionMsg, internalMsg, idPrefix } =
     SmartSelect
         { isOpen = False
@@ -97,7 +96,7 @@ subscriptions (SmartSelect model) =
         Sub.none
 
 
-keyActionMapper : { options : List ( Int, a ), focusedOptionIndex : Int, selectionMsg : ( Maybe a, Msg a ) -> msg, internalMsg : Msg a -> msg } -> Decode.Decoder ( msg, Bool )
+keyActionMapper : { options : List ( Int, a ), focusedOptionIndex : Int, selectionMsg : ( a, Msg a ) -> msg, internalMsg : Msg a -> msg } -> Decode.Decoder ( msg, Bool )
 keyActionMapper { options, focusedOptionIndex, selectionMsg, internalMsg } =
     Decode.field "key" Decode.string
         |> Decode.map Utilities.toKeyCode
@@ -129,7 +128,7 @@ keyActionMapper { options, focusedOptionIndex, selectionMsg, internalMsg } =
                     Enter ->
                         case Dict.get focusedOptionIndex (Dict.fromList options) of
                             Just item ->
-                                ( selectionMsg ( Just item, Close ), Utilities.preventDefault key )
+                                ( selectionMsg ( item, Close ), Utilities.preventDefault key )
 
                             Nothing ->
                                 ( internalMsg NoOp, Utilities.preventDefault key )
@@ -185,17 +184,6 @@ update msg (SmartSelect model) =
             , Utilities.blurInput model.idPrefix (model.internalMsg NoOp)
             )
 
-        Clear ->
-            let
-                cmd =
-                    if model.isOpen then
-                        Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
-
-                    else
-                        Cmd.none
-            in
-            ( SmartSelect { model | searchText = "" }, cmd )
-
 
 openPopover : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
 openPopover (SmartSelect model) =
@@ -208,7 +196,7 @@ openPopover (SmartSelect model) =
 
 
 showOptions :
-    { selectionMsg : ( Maybe a, Msg a ) -> msg
+    { selectionMsg : ( a, Msg a ) -> msg
     , selectedOption : Maybe a
     , internalMsg : Msg a -> msg
     , options : List ( Int, a )
@@ -242,7 +230,7 @@ showOptions { selectionMsg, selectedOption, internalMsg, options, optionLabelFn,
                                 |> Maybe.withDefault False
                     in
                     viewOptionsListItem
-                        [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( Just option, Close ), True ))
+                        [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option, Close ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
                         , id (Id.option idPrefix idx)
                         ]
@@ -285,7 +273,6 @@ view { selected, options, optionLabelFn } smartSelect =
             , searchPrompt = "Placeholder..."
             , noResultsForMsg = \_ -> "No results"
             , noOptionsMsg = ""
-            , clearable = True
             }
     in
     viewCustom config smartSelect
@@ -375,11 +362,10 @@ viewCustom :
     , searchPrompt : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
-    , clearable : Bool
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg, clearable } (SmartSelect model) =
+viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     let
         inputValue =
             case ( selected, model.isOpen ) of
@@ -388,13 +374,6 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
 
                 ( _, _ ) ->
                     model.searchText
-
-        clearIconAttrs =
-            if clearable == True then
-                Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( Nothing, Clear ), True )) ]
-
-            else
-                Nothing
     in
     viewTextFieldContainer
         [ id (Id.select model.idPrefix)
@@ -422,7 +401,7 @@ viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, 
                 ]
             , isDisabled = isDisabled
             , selectedOptions = []
-            , clearIconAttributes = clearIconAttrs
+            , clearIconAttributes = Nothing
             }
         , Alignment.view
             model.idPrefix

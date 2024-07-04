@@ -22,7 +22,7 @@ type alias Model =
 
 type Msg
     = HandleFormSubmission
-    | GotOptionSelected ( Maybe Language, SingleSelectRemote.Msg Language )
+    | GotOptionSelected ( Language, SingleSelectRemote.Msg Language )
     | SelectUpdated (SingleSelectRemote.Msg Language)
 
 
@@ -34,7 +34,7 @@ update msg model =
                 ( updatedSelect, selectCmd ) =
                     SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
             in
-            ( { model | select = updatedSelect, selectedOption = selectedOption }, selectCmd )
+            ( { model | select = updatedSelect, selectedOption = Just selectedOption }, selectCmd )
 
         SelectUpdated sMsg ->
             let
