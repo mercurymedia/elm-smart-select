@@ -24,6 +24,7 @@ type Msg
     = HandleFormSubmission
     | GotOptionSelected ( Language, SingleSelectRemote.Msg Language )
     | SelectUpdated (SingleSelectRemote.Msg Language)
+    | OnViewChange
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -46,6 +47,13 @@ update msg model =
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
+        OnViewChange ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    SingleSelectRemote.updatePosition model.select
+            in
+            ( { model | select = updatedSelect }, selectCmd )
+
 
 view : Model -> Html Msg
 view model =
@@ -53,6 +61,8 @@ view model =
         [ style "width" "100%"
         , style "height" "100vh"
         , style "padding" "3rem"
+        , style "overflow" "auto"
+        , Html.Events.on "scroll" (Decode.succeed OnViewChange)
         ]
         [ h1 [] [ text "SingleSelectRemote Example" ]
         , div
@@ -81,6 +91,7 @@ view model =
                 [ SingleSelectRemote.view { selected = model.selectedOption, optionLabelFn = .name } model.select ]
             , button [] [ text "Submit" ]
             ]
+        , div [ style "height" "100vh" ] []
         ]
 
 

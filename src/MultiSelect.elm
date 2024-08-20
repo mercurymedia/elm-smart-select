@@ -1,11 +1,11 @@
-module MultiSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update)
+module MultiSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition)
 
 {-| A select component for multi selection with local data.
 
 
 # Architecture
 
-@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update
+@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition
 
 -}
 
@@ -221,6 +221,23 @@ update msg (SmartSelect model) =
                         Cmd.none
             in
             ( SmartSelect { model | searchText = "" }, cmd )
+
+
+{-| Triggers an update of the provided smart select's alignment
+-}
+updatePosition : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+updatePosition (SmartSelect model) =
+    let
+        cmd =
+            if model.isOpen then
+                Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+
+            else
+                Cmd.none
+    in
+    ( SmartSelect model
+    , cmd
+    )
 
 
 showOptions :

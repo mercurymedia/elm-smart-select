@@ -3,6 +3,7 @@ module MultiSelectExample exposing (Model, Msg, init, subscriptions, update, vie
 import Html exposing (Html, button, div, form, h1, input, text)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
+import Json.Decode as Decode exposing (Decoder)
 import MultiSelect
 
 
@@ -25,6 +26,7 @@ type Msg
     = HandleSelectUpdate (MultiSelect.Msg Product)
     | HandleSelection ( List Product, MultiSelect.Msg Product )
     | HandleFormSubmission
+    | OnViewChange
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -47,6 +49,13 @@ update msg model =
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
+        OnViewChange ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    MultiSelect.updatePosition model.select
+            in
+            ( { model | select = updatedSelect }, selectCmd )
+
 
 viewSelectedProduct : Product -> Html Msg
 viewSelectedProduct product =
@@ -56,7 +65,13 @@ viewSelectedProduct product =
 
 view : Model -> Html Msg
 view model =
-    div [ style "width" "100vw", style "height" "100vh", style "padding" "3rem" ]
+    div
+        [ style "width" "100vw"
+        , style "height" "100vh"
+        , style "padding" "3rem"
+        , style "overflow" "auto"
+        , Html.Events.on "scroll" (Decode.succeed OnViewChange)
+        ]
         [ h1 [] [ text "MultiSelect Example" ]
         , div [ style "margin-bottom" "1rem" ] [ text "This form contains a multi select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
         , div [ id "form-submission-status", style "margin-bottom" "1rem" ]
@@ -82,6 +97,7 @@ view model =
                 ]
             , button [] [ text "Submit" ]
             ]
+        , div [ style "height" "100vh" ] []
         ]
 
 

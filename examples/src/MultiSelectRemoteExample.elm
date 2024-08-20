@@ -24,6 +24,7 @@ type Msg
     = HandleFormSubmission
     | GotOptionSelected ( List Language, MultiSelectRemote.Msg Language )
     | SelectUpdated (MultiSelectRemote.Msg Language)
+    | OnViewChange
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -46,6 +47,13 @@ update msg model =
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
+        OnViewChange ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    MultiSelectRemote.updatePosition model.select
+            in
+            ( { model | select = updatedSelect }, selectCmd )
+
 
 viewSelectedLanguage : Language -> Html Msg
 viewSelectedLanguage lang =
@@ -59,6 +67,8 @@ view model =
         [ style "width" "100%"
         , style "height" "100vh"
         , style "padding" "3rem"
+        , style "overflow" "auto"
+        , Html.Events.on "scroll" (Decode.succeed OnViewChange)
         ]
         [ h1 [] [ text "SingleSelectRemote Example" ]
         , div
@@ -87,6 +97,7 @@ view model =
                 [ MultiSelectRemote.view { selected = model.selectedOptions, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedLanguage } model.select ]
             , button [] [ text "Submit" ]
             ]
+        , div [ style "height" "100vh" ] []
         ]
 
 

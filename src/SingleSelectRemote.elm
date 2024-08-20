@@ -1,11 +1,11 @@
-module SingleSelectRemote exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update)
+module SingleSelectRemote exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition)
 
 {-| A select component for a single selection with remote data.
 
 
 # Architecture
 
-@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update
+@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition
 
 -}
 
@@ -291,6 +291,23 @@ openPopover (SmartSelect model) =
         [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
         , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
         ]
+    )
+
+
+{-| Triggers an update of the provided smart select's alignment
+-}
+updatePosition : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+updatePosition (SmartSelect model) =
+    let
+        cmd =
+            if model.isOpen then
+                Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+
+            else
+                Cmd.none
+    in
+    ( SmartSelect model
+    , cmd
     )
 
 

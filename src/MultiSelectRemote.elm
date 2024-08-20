@@ -1,11 +1,11 @@
-module MultiSelectRemote exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update)
+module MultiSelectRemote exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition)
 
 {-| A select component for multi selection with remote data.
 
 
 # Architecture
 
-@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update
+@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition
 
 -}
 
@@ -188,6 +188,23 @@ keyActionMapper { remoteData, selectedOptions, focusedOptionIndex, selectionMsg,
                     Other ->
                         ( internalMsg NoOp, Utilities.preventDefault key )
             )
+
+
+{-| Triggers an update of the provided smart select's alignment
+-}
+updatePosition : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+updatePosition (SmartSelect model) =
+    let
+        cmd =
+            if model.isOpen then
+                Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+
+            else
+                Cmd.none
+    in
+    ( SmartSelect model
+    , cmd
+    )
 
 
 debounceConfig : { internalMsg : Msg a -> msg, debounceDuration : Float } -> Debounce.Config msg
