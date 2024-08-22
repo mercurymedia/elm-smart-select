@@ -12,9 +12,10 @@ module SingleSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscrip
 import Browser.Dom as Dom
 import Browser.Events
 import Dict
-import Html exposing (Html, text)
-import Html.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
-import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
+import Html exposing (Html)
+import Html.Styled exposing (text)
+import Html.Styled.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
+import Html.Styled.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
@@ -226,7 +227,7 @@ showOptions :
     , noOptionsMsg : String
     , idPrefix : Prefix
     }
-    -> Html msg
+    -> Html.Styled.Html msg
 showOptions { selectionMsg, selectedOption, internalMsg, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchText, focusedOptionIndex, noResultsForMsg, noOptionsMsg, idPrefix } =
     viewOptionsList
         [ id (Id.container idPrefix)
@@ -275,7 +276,13 @@ indexOptions { options, searchFn, searchText } =
 
 -}
 view : { selected : Maybe a, options : List a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html msg
-view { selected, options, optionLabelFn } smartSelect =
+view config smartSelect =
+    viewStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewStyled : { selected : Maybe a, options : List a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html.Styled.Html msg
+viewStyled { selected, options, optionLabelFn } smartSelect =
     let
         config =
             { isDisabled = False
@@ -292,7 +299,7 @@ view { selected, options, optionLabelFn } smartSelect =
             , noOptionsMsg = ""
             }
     in
-    viewCustom config smartSelect
+    viewCustomStyled config smartSelect
 
 
 {-| The customizable smart select view for selecting one option at a time with local data.
@@ -382,7 +389,26 @@ viewCustom :
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustom config smartSelect =
+    viewCustomStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewCustomStyled :
+    { isDisabled : Bool
+    , selected : Maybe a
+    , options : List a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , optionsContainerMaxHeight : Float
+    , searchFn : String -> List a -> List a
+    , searchPrompt : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     let
         inputValue =
             case ( selected, model.isOpen ) of

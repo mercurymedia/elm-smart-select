@@ -21,7 +21,8 @@
         "elm/json": "1.0.0 <= v < 2.0.0",
         "elm/svg": "1.0.0 <= v < 2.0.0",
         "jinjor/elm-debounce": "3.0.0 <= v < 4.0.0",
-        "krisajenkins/remotedata": "6.0.0 <= v < 7.0.0"
+        "krisajenkins/remotedata": "6.0.0 <= v < 7.0.0",
+        "rtfeldman/elm-css": "18.0.0 <= v < 19.0.0"
     },
     "test-dependencies": {
         "elm-explorations/test": "2.2.0 <= v < 3.0.0"

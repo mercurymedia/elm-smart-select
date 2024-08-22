@@ -30,8 +30,8 @@ module SmartSelect.Alignment exposing
 -}
 
 import Browser.Dom as Dom exposing (Element)
-import Html exposing (Html, div)
-import Html.Attributes as Attrs
+import Html.Styled exposing (div)
+import Html.Styled.Attributes as Attrs
 import SmartSelect.Id as Id
 import SmartSelect.ViewComponents exposing (classPrefix)
 import Task exposing (Task)
@@ -97,7 +97,7 @@ getElements containerId selectId =
 -- Test
 
 
-style : Maybe Alignment -> List (Html.Attribute msg)
+style : Maybe Alignment -> List (Html.Styled.Attribute msg)
 style alignment =
     case alignment of
         Just (Alignment (Position { x, y, width }) placement) ->
@@ -135,7 +135,7 @@ containerClass alignment =
             classPrefix "options-container-below"
 
 
-view : Id.Prefix -> Maybe Alignment -> List (Html msg) -> Html msg
+view : Id.Prefix -> Maybe Alignment -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 view prefix alignment children =
     div
         (Attrs.id (Id.container prefix)

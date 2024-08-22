@@ -12,9 +12,10 @@ module MultiSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscript
 import Browser.Dom as Dom
 import Browser.Events
 import Dict
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
-import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
+import Html exposing (Html)
+import Html.Styled exposing (div, text)
+import Html.Styled.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
+import Html.Styled.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
@@ -254,7 +255,7 @@ showOptions :
     , noOptionsMsg : String
     , idPrefix : Prefix
     }
-    -> Html msg
+    -> Html.Styled.Html msg
 showOptions { selectionMsg, internalMsg, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchText, focusedOptionIndex, noResultsForMsg, noOptionsMsg, idPrefix } =
     viewOptionsList [ style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px") ]
         (if List.isEmpty options && searchText /= "" then
@@ -304,11 +305,13 @@ selectedEntityWrapper :
     , selectedOptions : List a
     }
     -> a
-    -> Html msg
+    -> Html.Styled.Html msg
 selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } selectedOption =
     div
         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( List.filter (\e -> e /= selectedOption) selectedOptions, SelectionChanged Nothing ), True )) ]
-        [ viewSelectedOptionFn selectedOption ]
+        [ viewSelectedOptionFn selectedOption
+            |> Html.Styled.fromUnstyled
+        ]
 
 
 {-| The smart select view for selecting multiple options at a time with local data.
@@ -320,7 +323,13 @@ selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } se
 
 -}
 view : { selected : List a, options : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html msg
-view { selected, options, optionLabelFn, viewSelectedOptionFn } smartSelect =
+view config smartSelect =
+    viewStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewStyled : { selected : List a, options : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html.Styled.Html msg
+viewStyled { selected, options, optionLabelFn, viewSelectedOptionFn } smartSelect =
     let
         config =
             { isDisabled = False
@@ -338,7 +347,7 @@ view { selected, options, optionLabelFn, viewSelectedOptionFn } smartSelect =
             , noOptionsMsg = "No options available"
             }
     in
-    viewCustom config smartSelect
+    viewCustomStyled config smartSelect
 
 
 {-| The smart select view for selecting multiple options at a time with local data.
@@ -434,7 +443,27 @@ viewCustom :
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, searchFn, selectTitle, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustom config smartSelect =
+    viewCustomStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewCustomStyled :
+    { isDisabled : Bool
+    , selected : List a
+    , options : List a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , viewSelectedOptionFn : a -> Html msg
+    , optionsContainerMaxHeight : Float
+    , searchFn : String -> List a -> List a
+    , selectTitle : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, searchFn, selectTitle, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     viewTextFieldContainer
         [ id (Id.select model.idPrefix)
         , classList

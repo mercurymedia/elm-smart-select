@@ -14,9 +14,10 @@ import Browser.Events
 import Color
 import Debounce exposing (Debounce)
 import Dict
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
-import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
+import Html exposing (Html)
+import Html.Styled exposing (div, text)
+import Html.Styled.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
+import Html.Styled.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Http
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
@@ -325,7 +326,7 @@ showOptions :
     , noOptionsMsg : String
     , idPrefix : Prefix
     }
-    -> Html msg
+    -> Html.Styled.Html msg
 showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, searchText, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix } =
     viewOptionsList
         [ id (Id.container idPrefix)
@@ -379,7 +380,7 @@ viewRemoteData :
     , noOptionsMsg : String
     , idPrefix : Prefix
     }
-    -> Html msg
+    -> Html.Styled.Html msg
 viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOption, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix } =
     case remoteData of
         NotAsked ->
@@ -436,7 +437,13 @@ indexOptions options =
 
 -}
 view : { selected : Maybe a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html msg
-view { selected, optionLabelFn } smartSelect =
+view config smartSelect =
+    viewStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewStyled : { selected : Maybe a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html.Styled.Html msg
+viewStyled { selected, optionLabelFn } smartSelect =
     let
         config =
             { isDisabled = False
@@ -452,7 +459,7 @@ view { selected, optionLabelFn } smartSelect =
             , noOptionsMsg = "No Options"
             }
     in
-    viewCustom config smartSelect
+    viewCustomStyled config smartSelect
 
 
 {-| The customizable smart select view for selecting one option at a time with remote data. It expects the following arguments (in order):
@@ -549,7 +556,27 @@ viewCustom :
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustom config smartSelect =
+    viewCustomStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewCustomStyled :
+    { isDisabled : Bool
+    , selected : Maybe a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , optionsContainerMaxHeight : Float
+    , spinnerColor : Color.Color
+    , searchPrompt : String
+    , characterThresholdPrompt : Int -> String
+    , queryErrorMsg : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     let
         inputValue =
             case ( selected, model.isOpen ) of

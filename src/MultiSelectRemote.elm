@@ -14,9 +14,10 @@ import Browser.Events
 import Color
 import Debounce exposing (Debounce)
 import Dict
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
-import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
+import Html exposing (Html)
+import Html.Styled exposing (div, text)
+import Html.Styled.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
+import Html.Styled.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Http
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
@@ -363,7 +364,7 @@ showOptions :
     , noOptionsMsg : String
     , idPrefix : Prefix
     }
-    -> Html msg
+    -> Html.Styled.Html msg
 showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix } =
     viewOptionsList
         [ id (Id.container idPrefix)
@@ -412,7 +413,7 @@ viewRemoteData :
     , noOptionsMsg : String
     , idPrefix : Prefix
     }
-    -> Html msg
+    -> Html.Styled.Html msg
 viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix } =
     case remoteData of
         NotAsked ->
@@ -474,11 +475,13 @@ selectedEntityWrapper :
     , selectedOptions : List a
     }
     -> a
-    -> Html msg
+    -> Html.Styled.Html msg
 selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } selectedOption =
     div
         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( List.filter (\e -> e /= selectedOption) selectedOptions, SelectionChanged Nothing ), True )) ]
-        [ viewSelectedOptionFn selectedOption ]
+        [ viewSelectedOptionFn selectedOption
+            |> Html.Styled.fromUnstyled
+        ]
 
 
 {-| The smart select view for selecting multiple options at a time with local data.
@@ -488,7 +491,13 @@ selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } se
 
 -}
 view : { selected : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html msg
-view { selected, optionLabelFn, viewSelectedOptionFn } smartSelect =
+view config smartSelect =
+    viewStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewStyled : { selected : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html.Styled.Html msg
+viewStyled { selected, optionLabelFn, viewSelectedOptionFn } smartSelect =
     let
         config =
             { isDisabled = False
@@ -505,7 +514,7 @@ view { selected, optionLabelFn, viewSelectedOptionFn } smartSelect =
             , noOptionsMsg = "No options available"
             }
     in
-    viewCustom config smartSelect
+    viewCustomStyled config smartSelect
 
 
 {-| The smart select view for selecting multiple options at a time with local data.
@@ -608,7 +617,28 @@ viewCustom :
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, spinnerColor, selectTitle, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustom config smartSelect =
+    viewCustomStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewCustomStyled :
+    { isDisabled : Bool
+    , selected : List a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , viewSelectedOptionFn : a -> Html msg
+    , optionsContainerMaxHeight : Float
+    , spinnerColor : Color.Color
+    , selectTitle : String
+    , characterThresholdPrompt : Int -> String
+    , queryErrorMsg : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, spinnerColor, selectTitle, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
     viewTextFieldContainer
         [ id (Id.select model.idPrefix)
         , classList

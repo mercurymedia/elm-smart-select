@@ -10,9 +10,9 @@ module SmartSelect.ViewComponents exposing
     )
 
 import Color
-import Html exposing (Html, div, input, span, text)
-import Html.Attributes exposing (class, classList, disabled)
-import Html.Events exposing (onClick)
+import Html.Styled exposing (div, input, span, text)
+import Html.Styled.Attributes exposing (class, classList, disabled)
+import Html.Styled.Events exposing (onClick)
 import SmartSelect.Icons as Icons
 import Spinner
 
@@ -22,19 +22,19 @@ classPrefix class =
     "elm-smart-select--" ++ class
 
 
-viewTextFieldContainer : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+viewTextFieldContainer : List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewTextFieldContainer attrs children =
     div attrs
         children
 
 
-viewOptionsList : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+viewOptionsList : List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewOptionsList attrs children =
     div (class (classPrefix "options-list") :: attrs)
         children
 
 
-viewOptionsListItem : List (Html.Attribute msg) -> { label : String, description : String, isFocused : Bool, isSelected : Bool } -> Html msg
+viewOptionsListItem : List (Html.Styled.Attribute msg) -> { label : String, description : String, isFocused : Bool, isSelected : Bool } -> Html.Styled.Html msg
 viewOptionsListItem attrs { label, description, isFocused, isSelected } =
     div
         (classList
@@ -60,20 +60,20 @@ viewOptionsListItem attrs { label, description, isFocused, isSelected } =
         ]
 
 
-viewEmptyOptionsListItem : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+viewEmptyOptionsListItem : List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewEmptyOptionsListItem attrs children =
     div (class (classPrefix "search-or-no-results-text") :: attrs) children
 
 
 viewTextField :
-    List (Html.Attribute msg)
+    List (Html.Styled.Attribute msg)
     ->
-        { inputAttributes : List (Html.Attribute msg)
-        , clearIconAttributes : Maybe (List (Html.Attribute msg))
-        , selectedOptions : List (Html msg)
+        { inputAttributes : List (Html.Styled.Attribute msg)
+        , clearIconAttributes : Maybe (List (Html.Styled.Attribute msg))
+        , selectedOptions : List (Html.Styled.Html msg)
         , isDisabled : Bool
         }
-    -> Html msg
+    -> Html.Styled.Html msg
 viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isDisabled } =
     div
         (classList
@@ -97,17 +97,18 @@ viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isD
         )
 
 
-viewIcon : List (Html.Attribute msg) -> Icons.Icon -> Html msg
+viewIcon : List (Html.Styled.Attribute msg) -> Icons.Icon -> Html.Styled.Html msg
 viewIcon attrs icon =
     span (class (classPrefix "text-field-icon") :: attrs)
         [ icon
             |> Icons.withSize 16
             |> Icons.withStrokeWidth 2
             |> Icons.toHtml []
+            |> Html.Styled.fromUnstyled
         ]
 
 
-viewError : List (Html.Attribute msg) -> { message : String, onDismiss : msg } -> Html msg
+viewError : List (Html.Styled.Attribute msg) -> { message : String, onDismiss : msg } -> Html.Styled.Html msg
 viewError attrs { message, onDismiss } =
     div (class (classPrefix "error-box-container") :: attrs)
         [ div [ class (classPrefix "error-box") ]
@@ -121,6 +122,7 @@ viewError attrs { message, onDismiss } =
                     |> Icons.withSize 12
                     |> Icons.withStrokeWidth 4
                     |> Icons.toHtml []
+                    |> Html.Styled.fromUnstyled
                 ]
             ]
         ]
@@ -147,9 +149,11 @@ spinnerConfig color =
     }
 
 
-viewSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html msg
+viewSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html.Styled.Html msg
 viewSpinner { spinner, spinnerColor } =
     div [ class (classPrefix "loading-spinner-container") ]
         [ div [ class (classPrefix "loading-spinner") ]
-            [ Spinner.view (spinnerConfig spinnerColor) spinner ]
+            [ Html.Styled.fromUnstyled <|
+                Spinner.view (spinnerConfig spinnerColor) spinner
+            ]
         ]
