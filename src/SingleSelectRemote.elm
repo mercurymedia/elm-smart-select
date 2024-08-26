@@ -15,8 +15,8 @@ import Color
 import Debounce exposing (Debounce)
 import Dict
 import Html exposing (Html)
-import Html.Styled exposing (div, text)
-import Html.Styled.Attributes exposing (autocomplete, class, classList, id, placeholder, style, value)
+import Html.Styled exposing (text)
+import Html.Styled.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
 import Html.Styled.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Http
 import Json.Decode as Decode
@@ -24,8 +24,9 @@ import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Errors as Errors
 import SmartSelect.Id as Id exposing (Prefix(..))
+import SmartSelect.Settings exposing (Settings)
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs)
-import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewSpinner, viewTextField, viewTextFieldContainer)
+import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewSearchPrompt, viewSearchPromptContainer, viewSpinner, viewTextField, viewTextFieldContainer)
 import Spinner
 
 
@@ -325,18 +326,19 @@ showOptions :
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     , idPrefix : Prefix
+    , settings : Settings
     }
     -> Html.Styled.Html msg
-showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, searchText, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix } =
-    viewOptionsList
+showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, searchText, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix, settings } =
+    viewOptionsList settings.theme
         [ id (Id.container idPrefix)
         , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
         ]
         (if List.isEmpty options && searchText /= "" then
-            [ viewEmptyOptionsListItem [] [ text <| noResultsForMsg searchText ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text <| noResultsForMsg searchText ] ]
 
          else if List.isEmpty options then
-            [ viewEmptyOptionsListItem [] [ text noOptionsMsg ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text noOptionsMsg ] ]
 
          else
             List.map
@@ -346,7 +348,7 @@ showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, sea
                             Maybe.map (\value -> value == option) selectedOption
                                 |> Maybe.withDefault False
                     in
-                    viewOptionsListItem
+                    viewOptionsListItem settings.theme
                         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option, Close ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
                         , id <| Id.option idPrefix idx
@@ -379,13 +381,14 @@ viewRemoteData :
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     , idPrefix : Prefix
+    , settings : Settings
     }
     -> Html.Styled.Html msg
-viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOption, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix } =
+viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOption, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix, settings } =
     case remoteData of
         NotAsked ->
             if characterSearchThreshold == 0 then
-                viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
+                viewSpinner settings.theme { spinner = spinner, spinnerColor = spinnerColor }
 
             else
                 let
@@ -394,15 +397,15 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
 
                     searchPrompt =
                         if difference == 0 then
-                            viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
+                            viewSpinner settings.theme { spinner = spinner, spinnerColor = spinnerColor }
 
                         else
-                            div [ class (classPrefix "search-prompt") ] [ text <| characterThresholdPrompt difference ]
+                            viewSearchPrompt settings.theme [] [ text <| characterThresholdPrompt difference ]
                 in
-                div [ class (classPrefix "search-prompt-container") ] [ searchPrompt ]
+                viewSearchPromptContainer settings.theme [] [ searchPrompt ]
 
         Loading ->
-            viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
+            viewSpinner settings.theme { spinner = spinner, spinnerColor = spinnerColor }
 
         Success options ->
             showOptions
@@ -418,10 +421,12 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
                 , noResultsForMsg = noResultsForMsg
                 , noOptionsMsg = noOptionsMsg
                 , idPrefix = idPrefix
+                , settings = settings
                 }
 
         Failure _ ->
-            viewError []
+            viewError settings.theme
+                []
                 { message = queryErrorMsg, onDismiss = internalMsg DismissError }
 
 
@@ -436,14 +441,26 @@ indexOptions options =
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
 
 -}
-view : { selected : Maybe a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html msg
+view :
+    { selected : Maybe a
+    , optionLabelFn : a -> String
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html msg
 view config smartSelect =
     viewStyled config smartSelect
         |> Html.Styled.toUnstyled
 
 
-viewStyled : { selected : Maybe a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html.Styled.Html msg
-viewStyled { selected, optionLabelFn } smartSelect =
+viewStyled :
+    { selected : Maybe a
+    , optionLabelFn : a -> String
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewStyled { selected, optionLabelFn, settings } smartSelect =
     let
         config =
             { isDisabled = False
@@ -457,6 +474,7 @@ viewStyled { selected, optionLabelFn } smartSelect =
             , queryErrorMsg = "Error"
             , noResultsForMsg = \_ -> "No results"
             , noOptionsMsg = "No Options"
+            , settings = settings
             }
     in
     viewCustomStyled config smartSelect
@@ -553,6 +571,7 @@ viewCustom :
     , queryErrorMsg : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html msg
@@ -573,10 +592,11 @@ viewCustomStyled :
     , queryErrorMsg : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
-viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinnerColor, searchPrompt, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, settings } (SmartSelect model) =
     let
         inputValue =
             case ( selected, model.isOpen ) of
@@ -586,11 +606,11 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, opt
                 ( _, _ ) ->
                     model.searchText
     in
-    viewTextFieldContainer
+    viewTextFieldContainer settings.theme
         [ id (Id.select model.idPrefix)
         , classList
-            [ ( classPrefix "enabled-closed", not model.isOpen )
-            , ( classPrefix "enabled-opened", model.isOpen )
+            [ ( "enabled-closed", not model.isOpen )
+            , ( "enabled-opened", model.isOpen )
             ]
         , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
         , Events.preventDefaultOn "keydown"
@@ -602,7 +622,8 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, opt
                 }
             )
         ]
-        [ viewTextField [ onClick <| model.internalMsg <| Open ]
+        [ viewTextField settings.theme
+            [ onClick <| model.internalMsg <| Open ]
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
                 , autocomplete False
@@ -615,6 +636,7 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, opt
             , clearIconAttributes = Nothing
             }
         , Alignment.view
+            settings.theme
             model.idPrefix
             model.alignment
             [ viewRemoteData
@@ -635,6 +657,7 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, opt
                 , noResultsForMsg = noResultsForMsg
                 , noOptionsMsg = noOptionsMsg
                 , idPrefix = model.idPrefix
+                , settings = settings
                 }
             ]
         ]

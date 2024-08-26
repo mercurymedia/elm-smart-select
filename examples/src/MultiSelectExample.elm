@@ -5,6 +5,7 @@ import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
 import Json.Decode as Decode exposing (Decoder)
 import MultiSelect
+import SmartSelect.Settings exposing (defaultSettings)
 
 
 type alias Product =
@@ -92,6 +93,7 @@ view model =
                     , options = model.products
                     , optionLabelFn = .name
                     , viewSelectedOptionFn = viewSelectedProduct
+                    , settings = defaultSettings
                     }
                     model.select
                 ]

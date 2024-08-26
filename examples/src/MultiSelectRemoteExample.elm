@@ -6,6 +6,7 @@ import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import MultiSelectRemote
+import SmartSelect.Settings exposing (defaultSettings)
 
 
 type alias Language =
@@ -94,7 +95,14 @@ view model =
                 ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ MultiSelectRemote.view { selected = model.selectedOptions, optionLabelFn = .name, viewSelectedOptionFn = viewSelectedLanguage } model.select ]
+                [ MultiSelectRemote.view
+                    { selected = model.selectedOptions
+                    , optionLabelFn = .name
+                    , viewSelectedOptionFn = viewSelectedLanguage
+                    , settings = defaultSettings
+                    }
+                    model.select
+                ]
             , button [] [ text "Submit" ]
             ]
         , div [ style "height" "100vh" ] []

@@ -30,10 +30,11 @@ module SmartSelect.Alignment exposing
 -}
 
 import Browser.Dom as Dom exposing (Element)
+import Css
 import Html.Styled exposing (div)
 import Html.Styled.Attributes as Attrs
 import SmartSelect.Id as Id
-import SmartSelect.ViewComponents exposing (classPrefix)
+import SmartSelect.Settings exposing (Theme)
 import Task exposing (Task)
 import Task.Extra as TaskExtra
 
@@ -122,34 +123,42 @@ style alignment =
             ]
 
 
-containerClass : Maybe Alignment -> String
-containerClass alignment =
+containerStyles : Maybe Alignment -> List Css.Style
+containerStyles alignment =
     case alignment of
         Just (Alignment _ Below) ->
-            classPrefix "options-container-below"
+            [ Css.flexDirection Css.column ]
 
         Just (Alignment _ Above) ->
-            classPrefix "options-container-above"
+            [ Css.flexDirection Css.columnReverse ]
 
         Nothing ->
-            classPrefix "options-container-below"
+            [ Css.flexDirection Css.column ]
 
 
-view : Id.Prefix -> Maybe Alignment -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
-view prefix alignment children =
+view : Theme -> Id.Prefix -> Maybe Alignment -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+view theme prefix alignment children =
     div
         (Attrs.id (Id.container prefix)
-            :: Attrs.class (classPrefix "container-wrapper")
+            :: Attrs.css [ Css.padding2 (Css.rem 0.25) (Css.rem 0) ]
             :: style alignment
         )
         [ div
-            [ Attrs.class
-                (String.join
-                    " "
-                    [ classPrefix "options-container"
-                    , containerClass alignment
-                    ]
-                )
+            [ Attrs.css
+                [ Css.backgroundColor theme.color.background.optionsContainer
+                , Css.zIndex (Css.int 50)
+                , Css.displayFlex
+                , Css.border3 theme.borderWidth Css.solid theme.color.border
+                , Css.borderRadius theme.borderRadius.base
+                , Css.boxShadow5
+                    theme.boxShadow.offsetX
+                    theme.boxShadow.offsetY
+                    theme.boxShadow.blurRadius
+                    theme.boxShadow.spreadRadius
+                    theme.boxShadow.color
+                , Css.overflow Css.auto
+                , Css.batch (containerStyles alignment)
+                ]
             ]
             children
         ]

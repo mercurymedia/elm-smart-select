@@ -20,11 +20,11 @@ import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Id as Id exposing (Prefix(..))
+import SmartSelect.Settings exposing (Settings)
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
 import SmartSelect.ViewComponents
     exposing
-        ( classPrefix
-        , viewEmptyOptionsListItem
+        ( viewEmptyOptionsListItem
         , viewOptionsList
         , viewOptionsListItem
         , viewTextField
@@ -226,18 +226,19 @@ showOptions :
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     , idPrefix : Prefix
+    , settings : Settings
     }
     -> Html.Styled.Html msg
-showOptions { selectionMsg, selectedOption, internalMsg, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchText, focusedOptionIndex, noResultsForMsg, noOptionsMsg, idPrefix } =
-    viewOptionsList
+showOptions { selectionMsg, selectedOption, internalMsg, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchText, focusedOptionIndex, noResultsForMsg, noOptionsMsg, idPrefix, settings } =
+    viewOptionsList settings.theme
         [ id (Id.container idPrefix)
         , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
         ]
         (if List.isEmpty options && searchText /= "" then
-            [ viewEmptyOptionsListItem [] [ text <| noResultsForMsg searchText ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text <| noResultsForMsg searchText ] ]
 
          else if List.isEmpty options then
-            [ viewEmptyOptionsListItem [] [ text noOptionsMsg ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text noOptionsMsg ] ]
 
          else
             List.map
@@ -247,7 +248,7 @@ showOptions { selectionMsg, selectedOption, internalMsg, options, optionLabelFn,
                             Maybe.map (\value -> value == option) selectedOption
                                 |> Maybe.withDefault False
                     in
-                    viewOptionsListItem
+                    viewOptionsListItem settings.theme
                         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option, Close ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
                         , id (Id.option idPrefix idx)
@@ -275,14 +276,28 @@ indexOptions { options, searchFn, searchText } =
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
 
 -}
-view : { selected : Maybe a, options : List a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html msg
+view :
+    { selected : Maybe a
+    , options : List a
+    , optionLabelFn : a -> String
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html msg
 view config smartSelect =
     viewStyled config smartSelect
         |> Html.Styled.toUnstyled
 
 
-viewStyled : { selected : Maybe a, options : List a, optionLabelFn : a -> String } -> SmartSelect msg a -> Html.Styled.Html msg
-viewStyled { selected, options, optionLabelFn } smartSelect =
+viewStyled :
+    { selected : Maybe a
+    , options : List a
+    , optionLabelFn : a -> String
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewStyled { selected, options, optionLabelFn, settings } smartSelect =
     let
         config =
             { isDisabled = False
@@ -297,6 +312,7 @@ viewStyled { selected, options, optionLabelFn } smartSelect =
             , searchPrompt = "Placeholder..."
             , noResultsForMsg = \_ -> "No results"
             , noOptionsMsg = ""
+            , settings = settings
             }
     in
     viewCustomStyled config smartSelect
@@ -386,6 +402,7 @@ viewCustom :
     , searchPrompt : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html msg
@@ -405,10 +422,11 @@ viewCustomStyled :
     , searchPrompt : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
-viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg, settings } (SmartSelect model) =
     let
         inputValue =
             case ( selected, model.isOpen ) of
@@ -418,11 +436,11 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
                 ( _, _ ) ->
                     model.searchText
     in
-    viewTextFieldContainer
+    viewTextFieldContainer settings.theme
         [ id (Id.select model.idPrefix)
         , classList
-            [ ( classPrefix "enabled-closed", not model.isOpen )
-            , ( classPrefix "enabled-opened", model.isOpen )
+            [ ( "enabled-closed", not model.isOpen )
+            , ( "enabled-opened", model.isOpen )
             ]
         , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
         , Events.preventDefaultOn "keydown"
@@ -434,7 +452,8 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
                 }
             )
         ]
-        [ viewTextField [ onClick <| model.internalMsg <| Open ]
+        [ viewTextField settings.theme
+            [ onClick <| model.internalMsg <| Open ]
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
                 , autocomplete False
@@ -447,6 +466,7 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
             , clearIconAttributes = Nothing
             }
         , Alignment.view
+            settings.theme
             model.idPrefix
             model.alignment
             [ showOptions
@@ -462,6 +482,7 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
                 , noResultsForMsg = noResultsForMsg
                 , noOptionsMsg = noOptionsMsg
                 , idPrefix = model.idPrefix
+                , settings = settings
                 }
             ]
         ]

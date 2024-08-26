@@ -1,56 +1,104 @@
 module SmartSelect.ViewComponents exposing
-    ( classPrefix
-    , viewEmptyOptionsListItem
+    ( viewEmptyOptionsListItem
     , viewError
     , viewOptionsList
     , viewOptionsListItem
+    , viewSearchPrompt
+    , viewSearchPromptContainer
     , viewSpinner
     , viewTextField
     , viewTextFieldContainer
     )
 
 import Color
+import Css
+import Css.Global
+import Css.Transitions
 import Html.Styled exposing (div, input, span, text)
-import Html.Styled.Attributes exposing (class, classList, disabled)
+import Html.Styled.Attributes exposing (attribute, class, css, disabled)
 import Html.Styled.Events exposing (onClick)
 import SmartSelect.Icons as Icons
+import SmartSelect.Settings exposing (Theme)
 import Spinner
 
 
-classPrefix : String -> String
-classPrefix class =
-    "elm-smart-select--" ++ class
+styleList : List ( List Css.Style, Bool ) -> Css.Style
+styleList list =
+    list
+        |> List.filter Tuple.second
+        |> List.concatMap Tuple.first
+        |> Css.batch
 
 
-viewTextFieldContainer : List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
-viewTextFieldContainer attrs children =
+transitionAll : Theme -> Css.Style
+transitionAll theme =
+    Css.property "transition"
+        ([ "all"
+         , String.fromFloat theme.transition.duration ++ "ms"
+         , "cubic-bezier(0.4, 0, 0.2, 1)"
+         ]
+            |> String.join " "
+        )
+
+
+colorsTransition : Theme -> Css.Style
+colorsTransition theme =
+    Css.Transitions.transition
+        [ Css.Transitions.backgroundColor3 theme.transition.duration 0 (Css.Transitions.cubicBezier 0.4 0 0.2 1)
+        , Css.Transitions.color3 theme.transition.duration 0 (Css.Transitions.cubicBezier 0.4 0 0.2 1)
+        ]
+
+
+viewTextFieldContainer : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+viewTextFieldContainer theme attrs children =
     div attrs
         children
 
 
-viewOptionsList : List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
-viewOptionsList attrs children =
-    div (class (classPrefix "options-list") :: attrs)
+viewOptionsList : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+viewOptionsList theme attrs children =
+    div
+        (css
+            [ Css.width (Css.pct 100)
+            , Css.overflow Css.auto
+            , Css.color theme.color.text.primary
+            ]
+            :: attrs
+        )
         children
 
 
-viewOptionsListItem : List (Html.Styled.Attribute msg) -> { label : String, description : String, isFocused : Bool, isSelected : Bool } -> Html.Styled.Html msg
-viewOptionsListItem attrs { label, description, isFocused, isSelected } =
+viewOptionsListItem : Theme -> List (Html.Styled.Attribute msg) -> { label : String, description : String, isFocused : Bool, isSelected : Bool } -> Html.Styled.Html msg
+viewOptionsListItem theme attrs { label, description, isFocused, isSelected } =
+    let
+        styles =
+            styleList
+                [ ( [ Css.backgroundColor theme.color.action.hover ]
+                  , isFocused
+                  )
+                , ( [ Css.backgroundColor theme.color.primary.light
+                    , Css.color theme.color.primary.main
+                    ]
+                  , isSelected
+                  )
+                ]
+    in
     div
-        (classList
-            [ ( classPrefix "options-list-item", True )
-            , ( classPrefix "options-list-item-focused", isFocused )
-            , ( classPrefix "options-list-item-selected", isSelected )
+        (css
+            [ Css.padding (Css.rem 0.5)
+            , Css.cursor Css.pointer
+            , colorsTransition theme
+            , styles
+            , Css.hover [ Css.backgroundColor theme.color.action.hover ]
             ]
             :: attrs
         )
         [ div [] [ text label ]
         , if description /= "" then
             div
-                [ classList
-                    [ ( classPrefix "options-list-item-description", True )
-                    , ( classPrefix "options-list-item-description-unfocused", not isFocused )
-                    , ( classPrefix "options-list-item-description-focused", isFocused )
+                [ css
+                    [ Css.fontSize theme.fontSize.xs
+                    , Css.color theme.color.text.secondary
                     ]
                 ]
                 [ text description ]
@@ -60,13 +108,23 @@ viewOptionsListItem attrs { label, description, isFocused, isSelected } =
         ]
 
 
-viewEmptyOptionsListItem : List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
-viewEmptyOptionsListItem attrs children =
-    div (class (classPrefix "search-or-no-results-text") :: attrs) children
+viewEmptyOptionsListItem : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+viewEmptyOptionsListItem theme attrs children =
+    div
+        (css
+            [ Css.width (Css.pct 100)
+            , Css.padding (Css.rem 0.5)
+            , Css.color theme.color.text.disabled
+            , Css.fontStyle Css.italic
+            ]
+            :: attrs
+        )
+        children
 
 
 viewTextField :
-    List (Html.Styled.Attribute msg)
+    Theme
+    -> List (Html.Styled.Attribute msg)
     ->
         { inputAttributes : List (Html.Styled.Attribute msg)
         , clearIconAttributes : Maybe (List (Html.Styled.Attribute msg))
@@ -74,32 +132,120 @@ viewTextField :
         , isDisabled : Bool
         }
     -> Html.Styled.Html msg
-viewTextField attrs { inputAttributes, selectedOptions, clearIconAttributes, isDisabled } =
+viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttributes, isDisabled } =
+    let
+        disabledStyles =
+            if isDisabled then
+                [ Css.cursor Css.default
+                , Css.opacity (Css.num 0.5)
+                , Css.pointerEvents Css.none
+                ]
+
+            else
+                []
+    in
     div
-        (classList
-            [ ( classPrefix "text-field", True )
-            , ( classPrefix "disabled", isDisabled )
+        (css
+            [ Css.displayFlex
+            , Css.flexWrap Css.wrap
+            , Css.alignItems Css.center
+            , Css.property "gap" "0.25rem"
+            , Css.borderRadius theme.borderRadius.base
+            , Css.cursor Css.text_
+            , Css.padding2 (Css.rem 0.5) (Css.rem 0.5)
+            , Css.backgroundColor theme.color.background.input
+            , Css.color theme.color.text.primary
+            , Css.border3 theme.borderWidth Css.solid theme.color.border
+            , Css.batch disabledStyles
+            , transitionAll theme
+            , Css.hover
+                [ Css.backgroundColor theme.color.action.hover
+                , Css.Global.descendants
+                    [ Css.Global.selector "[data-action=clear]"
+                        [ Css.opacity (Css.num 1) ]
+                    ]
+                ]
+            , Css.pseudoClass "focus-within"
+                [ Css.borderColor theme.color.primary.main
+                , Css.backgroundColor theme.color.background.input
+                ]
             ]
             :: attrs
         )
         (selectedOptions
-            ++ [ div [ class (classPrefix "text-field-input-container") ]
-                    [ input (disabled isDisabled :: inputAttributes) []
+            ++ [ div
+                    [ css
+                        [ Css.displayFlex
+                        , Css.alignItems Css.center
+                        , Css.property "gap" "0.125rem"
+                        , Css.flexGrow (Css.num 1)
+                        ]
+                    ]
+                    [ viewInput theme (disabled isDisabled :: inputAttributes)
                     , case clearIconAttributes of
                         Just clearAttrs ->
-                            viewIcon (class (classPrefix "text-field-icon-x") :: clearAttrs) Icons.x
+                            viewIcon theme
+                                ([ css [ Css.opacity (Css.num 0) ]
+                                 , attribute "data-action" "clear"
+                                 ]
+                                    ++ clearAttrs
+                                )
+                                Icons.x
 
                         Nothing ->
                             text ""
-                    , viewIcon [ class (classPrefix "text-field-icon-chevron") ] Icons.chevronDown
+                    , viewIcon theme
+                        []
+                        Icons.chevronDown
                     ]
                ]
         )
 
 
-viewIcon : List (Html.Styled.Attribute msg) -> Icons.Icon -> Html.Styled.Html msg
-viewIcon attrs icon =
-    span (class (classPrefix "text-field-icon") :: attrs)
+viewInput : Theme -> List (Html.Styled.Attribute msg) -> Html.Styled.Html msg
+viewInput theme attrs =
+    input
+        (css
+            [ Css.flexGrow (Css.num 1)
+            , Css.outline Css.none
+            , Css.borderWidth (Css.px 0)
+            , Css.borderRadius (Css.px 0)
+            , Css.backgroundColor Css.transparent
+            , Css.width (Css.px 0)
+            , Css.minWidth (Css.px 40)
+            , Css.minHeight theme.size.inputElement
+            , Css.pseudoClass ":placeholder"
+                [ Css.textOverflow Css.ellipsis
+                , Css.color theme.color.text.disabled
+                ]
+            , Css.pseudoClass "placeholder-shown"
+                [ Css.textOverflow Css.ellipsis
+                , Css.color theme.color.text.disabled
+                ]
+            ]
+            :: attrs
+        )
+        []
+
+
+viewIcon : Theme -> List (Html.Styled.Attribute msg) -> Icons.Icon -> Html.Styled.Html msg
+viewIcon theme attrs icon =
+    span
+        (css
+            [ Css.width theme.size.iconButton
+            , Css.height theme.size.iconButton
+            , Css.displayFlex
+            , Css.alignItems Css.center
+            , Css.justifyContent Css.center
+            , Css.borderRadius (Css.pct 50)
+            , Css.flexShrink (Css.num 0)
+            , Css.cursor Css.pointer
+            , Css.color theme.color.text.secondary
+            , transitionAll theme
+            , Css.hover [ Css.backgroundColor theme.color.action.hover ]
+            ]
+            :: attrs
+        )
         [ icon
             |> Icons.withSize 16
             |> Icons.withStrokeWidth 2
@@ -108,14 +254,25 @@ viewIcon attrs icon =
         ]
 
 
-viewError : List (Html.Styled.Attribute msg) -> { message : String, onDismiss : msg } -> Html.Styled.Html msg
-viewError attrs { message, onDismiss } =
-    div (class (classPrefix "error-box-container") :: attrs)
-        [ div [ class (classPrefix "error-box") ]
-            [ div [ class (classPrefix "error-container") ]
+viewError : Theme -> List (Html.Styled.Attribute msg) -> { message : String, onDismiss : msg } -> Html.Styled.Html msg
+viewError theme attrs { message, onDismiss } =
+    div (css [ Css.padding (Css.rem 0.5) ] :: attrs)
+        [ div
+            [ css
+                [ Css.width (Css.pct 100)
+                , Css.padding (Css.rem 0.5)
+                , Css.backgroundColor theme.color.error.light
+                , Css.color theme.color.error.main
+                , Css.borderRadius theme.borderRadius.base
+                , Css.displayFlex
+                , Css.justifyContent Css.spaceBetween
+                , Css.alignItems Css.center
+                ]
+            ]
+            [ div [ css [ Css.flexWrap Css.wrap ] ]
                 [ text message ]
             , span
-                [ class (classPrefix "dismiss-error-x")
+                [ css [ Css.cursor Css.pointer ]
                 , onClick onDismiss
                 ]
                 [ Icons.x
@@ -126,6 +283,31 @@ viewError attrs { message, onDismiss } =
                 ]
             ]
         ]
+
+
+viewSearchPromptContainer : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+viewSearchPromptContainer theme attrs children =
+    div
+        (css
+            [ Css.width (Css.pct 100)
+            , Css.color theme.color.text.disabled
+            , Css.fontStyle Css.italic
+            ]
+            :: attrs
+        )
+        children
+
+
+viewSearchPrompt : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+viewSearchPrompt theme attrs children =
+    div
+        (css
+            [ Css.width (Css.pct 100)
+            , Css.padding (Css.rem 0.5)
+            ]
+            :: attrs
+        )
+        children
 
 
 spinnerConfig : Color.Color -> Spinner.Config
@@ -149,10 +331,19 @@ spinnerConfig color =
     }
 
 
-viewSpinner : { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html.Styled.Html msg
-viewSpinner { spinner, spinnerColor } =
-    div [ class (classPrefix "loading-spinner-container") ]
-        [ div [ class (classPrefix "loading-spinner") ]
+viewSpinner : Theme -> { spinner : Spinner.Model, spinnerColor : Color.Color } -> Html.Styled.Html msg
+viewSpinner theme { spinner, spinnerColor } =
+    div
+        [ css
+            [ Css.width (Css.pct 100)
+            , Css.padding (Css.rem 1)
+            , Css.displayFlex
+            , Css.justifyContent Css.center
+            , Css.alignItems Css.center
+            , Css.height (Css.rem 4)
+            ]
+        ]
+        [ div [ css [ Css.position Css.relative ] ]
             [ Html.Styled.fromUnstyled <|
                 Spinner.view (spinnerConfig spinnerColor) spinner
             ]

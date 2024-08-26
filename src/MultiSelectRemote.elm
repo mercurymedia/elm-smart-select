@@ -24,8 +24,9 @@ import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Errors as Errors
 import SmartSelect.Id as Id exposing (Prefix(..))
+import SmartSelect.Settings exposing (Settings)
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..), RemoteQueryAttrs)
-import SmartSelect.ViewComponents exposing (classPrefix, viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewSpinner, viewTextField, viewTextFieldContainer)
+import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewSearchPrompt, viewSearchPromptContainer, viewSpinner, viewTextField, viewTextFieldContainer)
 import Spinner
 
 
@@ -363,23 +364,24 @@ showOptions :
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     , idPrefix : Prefix
+    , settings : Settings
     }
     -> Html.Styled.Html msg
-showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix } =
-    viewOptionsList
+showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, noResultsForMsg, noOptionsMsg, idPrefix, settings } =
+    viewOptionsList settings.theme
         [ id (Id.container idPrefix)
         , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
         ]
         (if List.isEmpty options && searchText /= "" then
-            [ viewEmptyOptionsListItem [] [ text <| noResultsForMsg searchText ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text <| noResultsForMsg searchText ] ]
 
          else if List.isEmpty options then
-            [ viewEmptyOptionsListItem [] [ text noOptionsMsg ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text noOptionsMsg ] ]
 
          else
             List.map
                 (\( idx, option ) ->
-                    viewOptionsListItem
+                    viewOptionsListItem settings.theme
                         [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option :: selectedOptions, SelectionChanged <| Just (Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex) ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
                         , id <| Id.option idPrefix idx
@@ -412,13 +414,14 @@ viewRemoteData :
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     , idPrefix : Prefix
+    , settings : Settings
     }
     -> Html.Styled.Html msg
-viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix } =
+viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchThreshold, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, spinner, spinnerColor, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, idPrefix, settings } =
     case remoteData of
         NotAsked ->
             if characterSearchThreshold == 0 then
-                viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
+                viewSpinner settings.theme { spinner = spinner, spinnerColor = spinnerColor }
 
             else
                 let
@@ -427,15 +430,15 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
 
                     searchPrompt =
                         if difference == 0 then
-                            viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
+                            viewSpinner settings.theme { spinner = spinner, spinnerColor = spinnerColor }
 
                         else
-                            div [ class (classPrefix "search-prompt") ] [ text <| characterThresholdPrompt difference ]
+                            viewSearchPrompt settings.theme [] [ text <| characterThresholdPrompt difference ]
                 in
-                div [ class (classPrefix "search-prompt-container") ] [ searchPrompt ]
+                viewSearchPromptContainer settings.theme [] [ searchPrompt ]
 
         Loading ->
-            viewSpinner { spinner = spinner, spinnerColor = spinnerColor }
+            viewSpinner settings.theme { spinner = spinner, spinnerColor = spinnerColor }
 
         Success options ->
             showOptions
@@ -451,10 +454,12 @@ viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, characterSearchT
                 , noResultsForMsg = noResultsForMsg
                 , noOptionsMsg = noOptionsMsg
                 , idPrefix = idPrefix
+                , settings = settings
                 }
 
         Failure _ ->
-            viewError []
+            viewError settings.theme
+                []
                 { message = queryErrorMsg, onDismiss = internalMsg DismissError }
 
 
@@ -490,14 +495,28 @@ selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } se
   - `viewSelectedOptionFn` takes a function that expects an instance of the data being selected from and returns html to render a selected option.
 
 -}
-view : { selected : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html msg
+view :
+    { selected : List a
+    , optionLabelFn : a -> String
+    , viewSelectedOptionFn : a -> Html msg
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html msg
 view config smartSelect =
     viewStyled config smartSelect
         |> Html.Styled.toUnstyled
 
 
-viewStyled : { selected : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html.Styled.Html msg
-viewStyled { selected, optionLabelFn, viewSelectedOptionFn } smartSelect =
+viewStyled :
+    { selected : List a
+    , optionLabelFn : a -> String
+    , viewSelectedOptionFn : a -> Html msg
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewStyled { selected, optionLabelFn, viewSelectedOptionFn, settings } smartSelect =
     let
         config =
             { isDisabled = False
@@ -512,6 +531,7 @@ viewStyled { selected, optionLabelFn, viewSelectedOptionFn } smartSelect =
             , queryErrorMsg = "Error"
             , noResultsForMsg = \_ -> "No results found"
             , noOptionsMsg = "No options available"
+            , settings = settings
             }
     in
     viewCustomStyled config smartSelect
@@ -614,6 +634,7 @@ viewCustom :
     , queryErrorMsg : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html msg
@@ -635,15 +656,16 @@ viewCustomStyled :
     , queryErrorMsg : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
-viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, spinnerColor, selectTitle, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
-    viewTextFieldContainer
+viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, spinnerColor, selectTitle, characterThresholdPrompt, queryErrorMsg, noResultsForMsg, noOptionsMsg, settings } (SmartSelect model) =
+    viewTextFieldContainer settings.theme
         [ id (Id.select model.idPrefix)
         , classList
-            [ ( classPrefix "enabled-closed", not model.isOpen )
-            , ( classPrefix "enabled-opened", model.isOpen )
+            [ ( "enabled-closed", not model.isOpen )
+            , ( "enabled-opened", model.isOpen )
             ]
         , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
         , Events.preventDefaultOn "keydown"
@@ -657,7 +679,8 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, vie
                 }
             )
         ]
-        [ viewTextField [ onClick <| model.internalMsg Open ]
+        [ viewTextField settings.theme
+            [ onClick <| model.internalMsg Open ]
             { inputAttributes =
                 [ id (Id.input model.idPrefix)
                 , autocomplete False
@@ -678,6 +701,7 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, vie
             , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], Clear ), True )) ]
             }
         , Alignment.view
+            settings.theme
             model.idPrefix
             model.alignment
             [ viewRemoteData
@@ -698,6 +722,7 @@ viewCustomStyled { isDisabled, selected, optionLabelFn, optionDescriptionFn, vie
                 , noResultsForMsg = noResultsForMsg
                 , noOptionsMsg = noOptionsMsg
                 , idPrefix = model.idPrefix
+                , settings = settings
                 }
             ]
         ]

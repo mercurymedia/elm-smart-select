@@ -6,6 +6,7 @@ import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import SingleSelectRemote
+import SmartSelect.Settings exposing (defaultSettings)
 
 
 type alias Language =
@@ -88,7 +89,13 @@ view model =
                 ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ SingleSelectRemote.view { selected = model.selectedOption, optionLabelFn = .name } model.select ]
+                [ SingleSelectRemote.view
+                    { selected = model.selectedOption
+                    , optionLabelFn = .name
+                    , settings = defaultSettings
+                    }
+                    model.select
+                ]
             , button [] [ text "Submit" ]
             ]
         , div [ style "height" "100vh" ] []
