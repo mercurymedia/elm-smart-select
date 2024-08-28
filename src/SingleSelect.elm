@@ -49,6 +49,18 @@ type alias Model msg a =
     }
 
 
+{-| The type representing the select's configuration to be passed to SingleSelect.viewCustom
+-}
+type alias Config a =
+    { selected : Maybe a
+    , options : List a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , searchFn : String -> List a -> List a
+    , settings : Settings
+    }
+
+
 {-| Opaque type representing cases to be passed to SingleSelect.update
 -}
 type Msg a
@@ -215,7 +227,7 @@ updatePosition (SmartSelect model) =
 
 showOptions :
     { selectionMsg : ( a, Msg a ) -> msg
-    , selectedOption : Maybe a
+    , selected : Maybe a
     , internalMsg : Msg a -> msg
     , options : List ( Int, a )
     , optionLabelFn : a -> String
@@ -229,23 +241,23 @@ showOptions :
     , settings : Settings
     }
     -> Html.Styled.Html msg
-showOptions { selectionMsg, selectedOption, internalMsg, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchText, focusedOptionIndex, noResultsForMsg, noOptionsMsg, idPrefix, settings } =
+showOptions { selectionMsg, selected, internalMsg, options, optionLabelFn, optionDescriptionFn, searchText, focusedOptionIndex, idPrefix, settings } =
     viewOptionsList settings.theme
         [ id (Id.container idPrefix)
-        , style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
+        , style "max-height" (String.fromFloat settings.optionsContainerMaxHeight ++ "px")
         ]
         (if List.isEmpty options && searchText /= "" then
-            [ viewEmptyOptionsListItem settings.theme [] [ text <| noResultsForMsg searchText ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text <| settings.noResultsForMsg searchText ] ]
 
          else if List.isEmpty options then
-            [ viewEmptyOptionsListItem settings.theme [] [ text noOptionsMsg ] ]
+            [ viewEmptyOptionsListItem settings.theme [] [ text settings.noOptionsMsg ] ]
 
          else
             List.map
                 (\( idx, option ) ->
                     let
                         isSelected =
-                            Maybe.map (\value -> value == option) selectedOption
+                            Maybe.map (\value -> value == option) selected
                                 |> Maybe.withDefault False
                     in
                     viewOptionsListItem settings.theme
@@ -284,8 +296,8 @@ view :
     }
     -> SmartSelect msg a
     -> Html msg
-view config smartSelect =
-    viewStyled config smartSelect
+view minConfig smartSelect =
+    viewStyled minConfig smartSelect
         |> Html.Styled.toUnstyled
 
 
@@ -300,134 +312,31 @@ viewStyled :
 viewStyled { selected, options, optionLabelFn, settings } smartSelect =
     let
         config =
-            { isDisabled = False
-            , selected = selected
+            { selected = selected
             , options = options
             , optionLabelFn = optionLabelFn
             , optionDescriptionFn = \_ -> ""
-            , optionsContainerMaxHeight = 300
             , searchFn =
                 \searchText allOptions ->
                     List.filter (\option -> String.contains (String.toLower searchText) (String.toLower <| optionLabelFn option)) allOptions
-            , searchPrompt = "Placeholder..."
-            , noResultsForMsg = \_ -> "No results"
-            , noOptionsMsg = ""
             , settings = settings
             }
     in
     viewCustomStyled config smartSelect
 
 
-{-| The customizable smart select view for selecting one option at a time with local data.
-
-  - `isDisabled` takes a boolean that indicates whether or not the select can be opened.
-  - `selected` takes the currently selected entity, if any.
-  - `options` takes a list of the data being selected from.
-  - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
-  - `optionDescriptionFn` takes a function that expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft".
-  - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
-  - `searchFn` takes a function that expects the search text and the items to search and returns the filtered items.
-  - `selectTitle` takes a string to label the select in its closed state and non-selected state.
-  - `searchPrompt` takes a string to indicate what is being searched for.
-  - `noResultsForMsg` takes a function that expects a string and returns a message indicating that the search for the provided string returned no results.
-  - `noOptionsMsg` takes a string to indicate that no options exist in the select.
-
-```elm
-import Html exposing (Html)
-import SingleSelect
-
-type Msg
-    = HandleSelectUpdate (SingleSelect.Msg Product)
-    | HandleSelection ( Product, SingleSelect.Msg Product )
-
-type alias Product =
-    { name : String
-    , description : String
-    , price : Float
-    }
-
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { products = exampleProducts
-      , select =
-            SingleSelect.init
-                { selectionMsg = HandleSelection
-                , internalMsg = HandleSelectUpdate
-                }
-      , selectedProduct = Nothing
-      }
-    , Cmd.none
-    )
-
-type alias Model =
-    { products : List Product
-    , select : SingleSelect.SmartSelect Msg Product
-    , selectedProduct : Maybe Product
-    }
-
-viewCustomProductSelect : Model -> Html Msg
-viewCustomProductSelect model =
-    SingleSelect.viewCustom
-        { isDisabled = False
-        , selected = model.selectedProduct
-        , options = model.products
-        , optionLabelFn = .name
-        , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
-        , optionsContainerMaxHeight = 500
-        , searchFn =
-            \searchText allOptions ->
-                List.filter
-                    (\option ->
-                        String.contains (String.toLower searchText) (String.toLower option.name)
-                            || String.contains (String.toLower searchText) (String.toLower option.description)
-                    )
-                    allOptions
-        , selectTitle = "Select a Product"
-        , searchPrompt = "Search for a Product"
-        , noResultsForMsg = \searchText -> "No results found for: " ++ searchText
-        , noOptionsMsg = "There are no options to select"
-        }
-        model.select
-```
-
--}
-viewCustom :
-    { isDisabled : Bool
-    , selected : Maybe a
-    , options : List a
-    , optionLabelFn : a -> String
-    , optionDescriptionFn : a -> String
-    , optionsContainerMaxHeight : Float
-    , searchFn : String -> List a -> List a
-    , searchPrompt : String
-    , noResultsForMsg : String -> String
-    , noOptionsMsg : String
-    , settings : Settings
-    }
-    -> SmartSelect msg a
-    -> Html msg
+viewCustom : Config a -> SmartSelect msg a -> Html msg
 viewCustom config smartSelect =
     viewCustomStyled config smartSelect
         |> Html.Styled.toUnstyled
 
 
-viewCustomStyled :
-    { isDisabled : Bool
-    , selected : Maybe a
-    , options : List a
-    , optionLabelFn : a -> String
-    , optionDescriptionFn : a -> String
-    , optionsContainerMaxHeight : Float
-    , searchFn : String -> List a -> List a
-    , searchPrompt : String
-    , noResultsForMsg : String -> String
-    , noOptionsMsg : String
-    , settings : Settings
-    }
-    -> SmartSelect msg a
-    -> Html.Styled.Html msg
-viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchFn, searchPrompt, noResultsForMsg, noOptionsMsg, settings } (SmartSelect model) =
+viewCustomStyled : Config a -> SmartSelect msg a -> Html.Styled.Html msg
+viewCustomStyled config (SmartSelect model) =
     let
+        { selected, options, searchFn, optionLabelFn, optionDescriptionFn, settings } =
+            config
+
         inputValue =
             case ( selected, model.isOpen ) of
                 ( Just value, False ) ->
@@ -445,7 +354,12 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
         , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
         , Events.preventDefaultOn "keydown"
             (keyActionMapper
-                { options = indexOptions { options = options, searchFn = searchFn, searchText = model.searchText }
+                { options =
+                    indexOptions
+                        { options = options
+                        , searchFn = searchFn
+                        , searchText = model.searchText
+                        }
                 , focusedOptionIndex = model.focusedOptionIndex
                 , selectionMsg = model.selectionMsg
                 , internalMsg = model.internalMsg
@@ -458,10 +372,10 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
                 [ id (Id.input model.idPrefix)
                 , autocomplete False
                 , onInput <| \newValue -> model.internalMsg <| SetSearchText newValue
-                , placeholder <| searchPrompt
+                , placeholder <| settings.placeholder
                 , value inputValue
                 ]
-            , isDisabled = isDisabled
+            , isDisabled = settings.isDisabled
             , selectedOptions = []
             , clearIconAttributes = Nothing
             }
@@ -471,16 +385,16 @@ viewCustomStyled { isDisabled, selected, options, optionLabelFn, optionDescripti
             model.alignment
             [ showOptions
                 { selectionMsg = model.selectionMsg
-                , selectedOption = selected
+                , selected = selected
                 , internalMsg = model.internalMsg
                 , options = indexOptions { options = options, searchFn = searchFn, searchText = model.searchText }
                 , optionLabelFn = optionLabelFn
                 , optionDescriptionFn = optionDescriptionFn
-                , optionsContainerMaxHeight = optionsContainerMaxHeight
+                , optionsContainerMaxHeight = settings.optionsContainerMaxHeight
                 , searchText = model.searchText
                 , focusedOptionIndex = model.focusedOptionIndex
-                , noResultsForMsg = noResultsForMsg
-                , noOptionsMsg = noOptionsMsg
+                , noResultsForMsg = settings.noResultsForMsg
+                , noOptionsMsg = settings.noOptionsMsg
                 , idPrefix = model.idPrefix
                 , settings = settings
                 }

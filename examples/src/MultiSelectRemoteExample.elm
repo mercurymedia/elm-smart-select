@@ -6,7 +6,7 @@ import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import MultiSelectRemote
-import SmartSelect.Settings exposing (defaultSettings)
+import SmartSelect.Settings exposing (defaultSettings, defaultRemoteSettings, RemoteSettings)
 
 
 type alias Language =
@@ -34,14 +34,14 @@ update msg model =
         GotOptionSelected ( selectedOptions, sMsg ) ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+                    MultiSelectRemote.update sMsg customRemoteSettings model.select
             in
             ( { model | select = updatedSelect, selectedOptions = selectedOptions }, selectCmd )
 
         SelectUpdated sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+                    MultiSelectRemote.update sMsg customRemoteSettings model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
@@ -99,7 +99,7 @@ view model =
                     { selected = model.selectedOptions
                     , optionLabelFn = .name
                     , viewSelectedOptionFn = viewSelectedLanguage
-                    , settings = defaultSettings
+                    , remoteSettings = customRemoteSettings
                     }
                     model.select
                 ]
@@ -108,14 +108,15 @@ view model =
         , div [ style "height" "100vh" ] []
         ]
 
+customRemoteSettings : RemoteSettings Language
+customRemoteSettings = 
+    defaultRemoteSettings httpRemoteSearchAttrs
 
 init : ( Model, Cmd Msg )
 init =
     ( { select =
             MultiSelectRemote.init
-                { characterSearchThreshold = 2
-                , debounceDuration = 1000
-                , selectionMsg = GotOptionSelected
+                { selectionMsg = GotOptionSelected
                 , internalMsg = SelectUpdated
                 , idPrefix = "multi-select-remote"
                 }
@@ -128,7 +129,7 @@ init =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    MultiSelectRemote.subscriptions model.select
+    MultiSelectRemote.subscriptions customRemoteSettings model.select
 
 
 httpRemoteSearchAttrs : { headers : List Http.Header, url : String -> String, optionDecoder : Decoder Language }

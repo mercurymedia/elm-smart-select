@@ -6,7 +6,7 @@ import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import SingleSelectRemote
-import SmartSelect.Settings exposing (defaultSettings)
+import SmartSelect.Settings exposing (RemoteSettings, defaultRemoteSettings, defaultSettings)
 
 
 type alias Language =
@@ -34,14 +34,14 @@ update msg model =
         GotOptionSelected ( selectedOption, sMsg ) ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+                    SingleSelectRemote.update sMsg customRemoteSettings model.select
             in
             ( { model | select = updatedSelect, selectedOption = Just selectedOption }, selectCmd )
 
         SelectUpdated sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelectRemote.update sMsg httpRemoteSearchAttrs model.select
+                    SingleSelectRemote.update sMsg customRemoteSettings model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
@@ -92,7 +92,7 @@ view model =
                 [ SingleSelectRemote.view
                     { selected = model.selectedOption
                     , optionLabelFn = .name
-                    , settings = defaultSettings
+                    , remoteSettings = customRemoteSettings
                     }
                     model.select
                 ]
@@ -106,9 +106,7 @@ init : ( Model, Cmd Msg )
 init =
     ( { select =
             SingleSelectRemote.init
-                { characterSearchThreshold = 2
-                , debounceDuration = 1000
-                , selectionMsg = GotOptionSelected
+                { selectionMsg = GotOptionSelected
                 , internalMsg = SelectUpdated
                 , idPrefix = "single-select-remote"
                 }
@@ -119,9 +117,14 @@ init =
     )
 
 
+customRemoteSettings : RemoteSettings Language
+customRemoteSettings =
+    defaultRemoteSettings httpRemoteSearchAttrs
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    SingleSelectRemote.subscriptions model.select
+    SingleSelectRemote.subscriptions customRemoteSettings model.select
 
 
 httpRemoteSearchAttrs : { headers : List Http.Header, url : String -> String, optionDecoder : Decoder Language }

@@ -1,6 +1,5 @@
 module SmartSelect.Utilities exposing
     ( KeyCode(..)
-    , RemoteQueryAttrs
     , alwaysStopPropogation
     , blurInput
     , clickedOutsideSelect
@@ -26,21 +25,13 @@ module SmartSelect.Utilities exposing
 
 import Browser.Dom as Dom
 import Color
-import Http exposing (Header)
+import Http
 import Json.Decode as Decode exposing (Decoder)
 import RemoteData exposing (RemoteData)
 import SmartSelect.Id as Id
+import SmartSelect.Settings exposing (RemoteQueryAttrs)
 import Spinner
 import Task
-
-
-{-| Fields to be provided to facilitate the external request. The function provided to url takes in searchText in the event it is necessary for the query.
--}
-type alias RemoteQueryAttrs a =
-    { headers : List Header
-    , url : String -> String
-    , optionDecoder : Decoder a
-    }
 
 
 spinnerConfig : Color.Color -> Spinner.Config

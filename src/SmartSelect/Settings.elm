@@ -1,20 +1,48 @@
 module SmartSelect.Settings exposing
-    ( Settings
+    ( RemoteQueryAttrs
+    , RemoteSettings
+    , Settings
     , Theme
+    , defaultRemoteSettings
     , defaultSettings
     , defaultTheme
     )
 
+import Color
 import Css
+import Http exposing (Header)
+import Json.Decode exposing (Decoder)
 
 
 type alias Settings =
-    { theme : Theme }
+    { theme : Theme
+    , isDisabled : Bool
+    , optionsContainerMaxHeight : Float
+    , placeholder : String
+    , noResultsForMsg : String -> String
+    , noOptionsMsg : String
+    , id : String
+    }
 
 
-defaultSettings : Settings
-defaultSettings =
-    { theme = defaultTheme }
+type alias RemoteSettings a =
+    { settings : Settings
+    , spinnerColor : Color.Color
+    , characterThresholdPrompt : Int -> String
+    , characterSearchThreshold : Int
+    , debounceDuration : Float
+    , queryErrorMsg : String
+    , queryAttrs : RemoteQueryAttrs a
+    }
+
+
+{-| Fields to be provided to facilitate the external request. The function provided to url takes in searchText in the event it is necessary for the query.
+-}
+type alias RemoteQueryAttrs a =
+    { headers : List Header
+    , url : String -> String
+    , optionDecoder : Decoder a
+    }
 
 
 type alias Theme =
@@ -64,6 +92,30 @@ type alias Theme =
         , color : Css.Color
         }
     , transition : { duration : Float }
+    }
+
+
+defaultSettings : Settings
+defaultSettings =
+    { theme = defaultTheme
+    , isDisabled = False
+    , optionsContainerMaxHeight = 300
+    , placeholder = "Search..."
+    , noResultsForMsg = \_ -> "No results"
+    , noOptionsMsg = "No options available"
+    , id = "elm-smart-select"
+    }
+
+
+defaultRemoteSettings : RemoteQueryAttrs a -> RemoteSettings a
+defaultRemoteSettings queryAttrs =
+    { settings = defaultSettings
+    , spinnerColor = Color.rgb255 57 179 181
+    , characterThresholdPrompt = \_ -> "Enter at least 2 characters to search..."
+    , characterSearchThreshold = 2
+    , debounceDuration = 1000
+    , queryErrorMsg = "Error"
+    , queryAttrs = queryAttrs
     }
 
 
