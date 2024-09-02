@@ -1,5 +1,6 @@
 module SmartSelect.ViewComponents exposing
-    ( viewEmptyOptionsListItem
+    ( classPrefix
+    , viewEmptyOptionsListItem
     , viewError
     , viewOptionsList
     , viewOptionsListItem
@@ -49,21 +50,28 @@ colorsTransition theme =
         ]
 
 
+classPrefix : String -> String -> String
+classPrefix prefix className =
+    prefix ++ "--" ++ className
+
+
 viewTextFieldContainer : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewTextFieldContainer theme attrs children =
-    div attrs
+    div (class (classPrefix theme.classNamePrefix "text-field-container") :: attrs)
         children
 
 
 viewOptionsList : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewOptionsList theme attrs children =
     div
-        (css
+        ([ css
             [ Css.width (Css.pct 100)
             , Css.overflow Css.auto
             , Css.color theme.color.text.primary
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "options-list")
+         ]
+            ++ attrs
         )
         children
 
@@ -84,14 +92,16 @@ viewOptionsListItem theme attrs { label, description, isFocused, isSelected } =
                 ]
     in
     div
-        (css
+        ([ css
             [ Css.padding (Css.rem 0.5)
             , Css.cursor Css.pointer
             , colorsTransition theme
             , styles
             , Css.hover [ Css.backgroundColor theme.color.action.hover ]
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "options-list-item")
+         ]
+            ++ attrs
         )
         [ div [] [ text label ]
         , if description /= "" then
@@ -111,13 +121,15 @@ viewOptionsListItem theme attrs { label, description, isFocused, isSelected } =
 viewEmptyOptionsListItem : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewEmptyOptionsListItem theme attrs children =
     div
-        (css
+        ([ css
             [ Css.width (Css.pct 100)
             , Css.padding (Css.rem 0.5)
             , Css.color theme.color.text.disabled
             , Css.fontStyle Css.italic
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "options-list-item-empty")
+         ]
+            ++ attrs
         )
         children
 
@@ -145,7 +157,7 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
                 []
     in
     div
-        (css
+        ([ css
             [ Css.displayFlex
             , Css.flexWrap Css.wrap
             , Css.alignItems Css.center
@@ -170,7 +182,9 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
                 , Css.backgroundColor theme.color.background.input
                 ]
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "text-field")
+         ]
+            ++ attrs
         )
         (selectedOptions
             ++ [ div
@@ -187,6 +201,7 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
                             viewIcon theme
                                 ([ css [ Css.opacity (Css.num 0) ]
                                  , attribute "data-action" "clear"
+                                 , class (classPrefix theme.classNamePrefix "clear-button")
                                  ]
                                     ++ clearAttrs
                                 )
@@ -195,7 +210,7 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
                         Nothing ->
                             text ""
                     , viewIcon theme
-                        []
+                        [ class (classPrefix theme.classNamePrefix "chevron-button") ]
                         Icons.chevronDown
                     ]
                ]
@@ -205,7 +220,7 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
 viewInput : Theme -> List (Html.Styled.Attribute msg) -> Html.Styled.Html msg
 viewInput theme attrs =
     input
-        (css
+        ([ css
             [ Css.flexGrow (Css.num 1)
             , Css.outline Css.none
             , Css.borderWidth (Css.px 0)
@@ -223,7 +238,9 @@ viewInput theme attrs =
                 , Css.color theme.color.text.disabled
                 ]
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "input")
+         ]
+            ++ attrs
         )
         []
 
@@ -231,7 +248,7 @@ viewInput theme attrs =
 viewIcon : Theme -> List (Html.Styled.Attribute msg) -> Icons.Icon -> Html.Styled.Html msg
 viewIcon theme attrs icon =
     span
-        (css
+        ([ css
             [ Css.width theme.size.iconButton
             , Css.height theme.size.iconButton
             , Css.displayFlex
@@ -244,7 +261,9 @@ viewIcon theme attrs icon =
             , transitionAll theme
             , Css.hover [ Css.backgroundColor theme.color.action.hover ]
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "icon")
+         ]
+            ++ attrs
         )
         [ icon
             |> Icons.withSize 16
@@ -256,7 +275,12 @@ viewIcon theme attrs icon =
 
 viewError : Theme -> List (Html.Styled.Attribute msg) -> { message : String, onDismiss : msg } -> Html.Styled.Html msg
 viewError theme attrs { message, onDismiss } =
-    div (css [ Css.padding (Css.rem 0.5) ] :: attrs)
+    div
+        ([ css [ Css.padding (Css.rem 0.5) ]
+         , class (classPrefix theme.classNamePrefix "error-container")
+         ]
+            ++ attrs
+        )
         [ div
             [ css
                 [ Css.width (Css.pct 100)
@@ -268,12 +292,14 @@ viewError theme attrs { message, onDismiss } =
                 , Css.justifyContent Css.spaceBetween
                 , Css.alignItems Css.center
                 ]
+            , class (classPrefix theme.classNamePrefix "error-container-inner")
             ]
-            [ div [ css [ Css.flexWrap Css.wrap ] ]
+            [ div [ css [ Css.flexWrap Css.wrap ], class (classPrefix theme.classNamePrefix "error-message") ]
                 [ text message ]
             , span
                 [ css [ Css.cursor Css.pointer ]
                 , onClick onDismiss
+                , class (classPrefix theme.classNamePrefix "error-close-button")
                 ]
                 [ Icons.x
                     |> Icons.withSize 12
@@ -288,12 +314,14 @@ viewError theme attrs { message, onDismiss } =
 viewSearchPromptContainer : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewSearchPromptContainer theme attrs children =
     div
-        (css
+        ([ css
             [ Css.width (Css.pct 100)
             , Css.color theme.color.text.disabled
             , Css.fontStyle Css.italic
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "search-prompt-container")
+         ]
+            ++ attrs
         )
         children
 
@@ -301,11 +329,13 @@ viewSearchPromptContainer theme attrs children =
 viewSearchPrompt : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewSearchPrompt theme attrs children =
     div
-        (css
+        ([ css
             [ Css.width (Css.pct 100)
             , Css.padding (Css.rem 0.5)
             ]
-            :: attrs
+         , class (classPrefix theme.classNamePrefix "search-prompt")
+         ]
+            ++ attrs
         )
         children
 
@@ -342,8 +372,9 @@ viewSpinner theme { spinner, spinnerColor } =
             , Css.alignItems Css.center
             , Css.height (Css.rem 4)
             ]
+        , class (classPrefix theme.classNamePrefix "spinner-container")
         ]
-        [ div [ css [ Css.position Css.relative ] ]
+        [ div [ css [ Css.position Css.relative ], class (classPrefix theme.classNamePrefix "spinner") ]
             [ Html.Styled.fromUnstyled <|
                 Spinner.view (spinnerConfig spinnerColor) spinner
             ]

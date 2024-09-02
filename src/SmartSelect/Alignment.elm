@@ -35,6 +35,7 @@ import Html.Styled exposing (div)
 import Html.Styled.Attributes as Attrs
 import SmartSelect.Id as Id
 import SmartSelect.Settings exposing (Theme)
+import SmartSelect.ViewComponents exposing (classPrefix)
 import Task exposing (Task)
 import Task.Extra as TaskExtra
 
@@ -141,6 +142,7 @@ view theme prefix alignment children =
     div
         (Attrs.id (Id.container prefix)
             :: Attrs.css [ Css.padding2 (Css.rem 0.25) (Css.rem 0) ]
+            :: Attrs.class (classPrefix theme.classNamePrefix "options-list-container")
             :: style alignment
         )
         [ div
@@ -159,6 +161,7 @@ view theme prefix alignment children =
                 , Css.overflow Css.auto
                 , Css.batch (containerStyles alignment)
                 ]
+            , Attrs.class (classPrefix theme.classNamePrefix "options-list-container-inner")
             ]
             children
         ]
