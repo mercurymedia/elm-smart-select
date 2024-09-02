@@ -1,12 +1,13 @@
-module SmartSelect.Settings exposing
-    ( RemoteQueryAttrs
-    , RemoteSettings
-    , Settings
-    , Theme
-    , defaultRemoteSettings
-    , defaultSettings
-    , defaultTheme
-    )
+module SmartSelect.Settings exposing (Settings, RemoteSettings, RemoteQueryAttrs, Theme, defaultRemoteSettings, defaultSettings, defaultTheme)
+
+{-| The settings module for all smart select variants
+
+
+# Architecture
+
+@docs Settings, RemoteSettings, RemoteQueryAttrs, Theme, defaultRemoteSettings, defaultSettings, defaultTheme
+
+-}
 
 import Color
 import Css
@@ -14,6 +15,8 @@ import Http exposing (Header)
 import Json.Decode exposing (Decoder)
 
 
+{-| The type representing the select's general settings to be passed to all view functions
+-}
 type alias Settings =
     { theme : Theme
     , isDisabled : Bool
@@ -25,6 +28,8 @@ type alias Settings =
     }
 
 
+{-| The type representing the select's remote settings (including the general settings) to be passed to all view & update functions of the remote variants
+-}
 type alias RemoteSettings a =
     { settings : Settings
     , spinnerColor : Color.Color
@@ -45,6 +50,8 @@ type alias RemoteQueryAttrs a =
     }
 
 
+{-| The type facilitating the Theme with the most important design tokens
+-}
 type alias Theme =
     { fontSize :
         { base : Css.Px
@@ -95,6 +102,9 @@ type alias Theme =
     }
 
 
+{-| A record of default settings for all the select variants. Extend this if
+you want to further customize.
+-}
 defaultSettings : Settings
 defaultSettings =
     { theme = defaultTheme
@@ -107,6 +117,12 @@ defaultSettings =
     }
 
 
+{-| A record of default settings for the remote select variants. Extend this if
+you want to further customize.
+
+Requires the `RemoteQueryAttrs`.
+
+-}
 defaultRemoteSettings : RemoteQueryAttrs a -> RemoteSettings a
 defaultRemoteSettings queryAttrs =
     { settings = defaultSettings
@@ -119,6 +135,8 @@ defaultRemoteSettings queryAttrs =
     }
 
 
+{-| The default theme that is included in the defaultSettings
+-}
 defaultTheme : Theme
 defaultTheme =
     { fontSize =

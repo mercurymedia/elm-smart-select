@@ -286,6 +286,7 @@ indexOptions { options, searchFn, searchText } =
   - `selected` takes the currently selected entity, if any.
   - `options` takes a list of the data being selected from.
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
+  - `settings` takes the settings record (see the `Settings` type)
 
 -}
 view :
@@ -325,6 +326,8 @@ viewStyled { selected, options, optionLabelFn, settings } smartSelect =
     viewCustomStyled config smartSelect
 
 
+{-| The smart select view for selecting one option at a time with local data. You have to pass a custom configuration here.
+-}
 viewCustom : Config a -> SmartSelect msg a -> Html msg
 viewCustom config smartSelect =
     viewCustomStyled config smartSelect

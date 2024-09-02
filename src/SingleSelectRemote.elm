@@ -82,8 +82,6 @@ type Msg a
 
   - `selectionMsg` takes a function that expects a tuple representing the selection and a SinglSelectRemote.Msg msg and returns an externally defined msg for handling selection.
   - `internalMsg` takes a function that expects a SingleSelectRemote.Msg and returns an externally defined msg.
-  - `characterSearchThreshold` takes an integer that specifies how many characters need to be typed before triggering the remote query.
-  - `debounceDuration` takes a float that specifies the duration in milliseconds between the last keypress and remote query being triggered.
   - `idPrefix` takes a string with a unique prefix
 
 -}
@@ -193,13 +191,6 @@ debounceConfig { internalMsg, debounceDuration } =
 
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
-
-    type alias RemoteSearchAttrs a =
-        { headers : List Header
-        , url : String -> String
-        , optionDecoder : Decoder a
-        }
-
 -}
 update : Msg a -> RemoteSettings a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
 update msg remoteSettings (SmartSelect model) =
@@ -439,6 +430,7 @@ indexOptions options =
 
   - `selected` takes the currently selected entity, if any.
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
+  - `remoteSettings` takes the remoteSettings record (see the `RemoteSettings` type)
 
 -}
 view :
@@ -472,6 +464,8 @@ viewStyled { selected, optionLabelFn, remoteSettings } smartSelect =
     viewCustomStyled config smartSelect
 
 
+{-| The smart select view for selecting one option at a time with remote data. You have to pass a custom configuration here.
+-}
 viewCustom : Config a -> SmartSelect msg a -> Html msg
 viewCustom config smartSelect =
     viewCustomStyled config smartSelect

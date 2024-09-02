@@ -333,6 +333,7 @@ selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } se
   - `options` takes a list of the data being selected from.
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
   - `viewSelectedOptionFn` takes a function that expects and instance of the data being selected from and returns html to render a selected option.
+  - `settings` takes the settings record (see the `Settings` type)
 
 -}
 view :
@@ -375,6 +376,8 @@ viewStyled { selected, options, optionLabelFn, viewSelectedOptionFn, settings } 
     viewCustomStyled config smartSelect
 
 
+{-| The smart select custom view for selecting multiple options at a time with local data. You have to pass a custom configuration here.
+-}
 viewCustom : Config msg a -> SmartSelect msg a -> Html msg
 viewCustom config smartSelect =
     viewCustomStyled config smartSelect
