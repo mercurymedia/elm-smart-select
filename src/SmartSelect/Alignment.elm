@@ -61,7 +61,7 @@ init { container, select, viewport } =
         Alignment
             (Position
                 { x = select.element.x
-                , y = select.element.y - container.element.height
+                , y = viewport.viewport.height - select.element.y
                 , width = select.element.width
                 }
             )
@@ -93,12 +93,21 @@ getElements containerId selectId =
 style : Maybe Alignment -> List (Html.Attribute msg)
 style alignment =
     case alignment of
-        Just (Alignment (Position { x, y, width }) _) ->
-            [ Attrs.style "position" "fixed"
-            , Attrs.style "top" (String.fromFloat y ++ "px")
-            , Attrs.style "left" (String.fromFloat x ++ "px")
-            , Attrs.style "width" (String.fromFloat width ++ "px")
-            ]
+        Just (Alignment (Position { x, y, width }) placement) ->
+            case placement of
+                Above ->
+                    [ Attrs.style "position" "fixed"
+                    , Attrs.style "bottom" (String.fromFloat y ++ "px")
+                    , Attrs.style "left" (String.fromFloat x ++ "px")
+                    , Attrs.style "width" (String.fromFloat width ++ "px")
+                    ]
+
+                Below ->
+                    [ Attrs.style "position" "fixed"
+                    , Attrs.style "top" (String.fromFloat y ++ "px")
+                    , Attrs.style "left" (String.fromFloat x ++ "px")
+                    , Attrs.style "width" (String.fromFloat width ++ "px")
+                    ]
 
         Nothing ->
             [ Attrs.style "position" "fixed"
