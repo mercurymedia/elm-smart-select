@@ -1,9 +1,11 @@
 module SingleSelectExample exposing (Model, Msg, init, subscriptions, update, view)
 
-import Html exposing (Html, button, div, form, input, p, text)
+import Html exposing (Html, button, div, form, h1, input, p, text)
 import Html.Attributes exposing (id, style)
 import Html.Events exposing (onSubmit)
+import Json.Decode as Decode
 import SingleSelect
+import SmartSelect.Settings exposing (defaultSettings)
 
 
 type alias Product =
@@ -25,6 +27,7 @@ type Msg
     = HandleSelectUpdate (SingleSelect.Msg Product)
     | HandleSelection ( Product, SingleSelect.Msg Product )
     | HandleFormSubmission
+    | OnViewChange
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -47,6 +50,13 @@ update msg model =
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
+        OnViewChange ->
+            let
+                ( updatedSelect, selectCmd ) =
+                    SingleSelect.updatePosition model.select
+            in
+            ( { model | select = updatedSelect }, selectCmd )
+
 
 view : Model -> Html Msg
 view model =
@@ -54,8 +64,11 @@ view model =
         [ style "width" "100%"
         , style "height" "100vh"
         , style "padding" "3rem"
+        , style "overflow" "auto"
+        , Html.Events.on "scroll" (Decode.succeed OnViewChange)
         ]
-        [ div
+        [ h1 [] [ text "SingleSelect Example" ]
+        , div
             [ style "margin-bottom" "1rem"
             ]
             [ text "This form contains a single select with local search. We use a form here to demonstrate that the select key commands won't inadvertently impact form submission." ]
@@ -69,13 +82,21 @@ view model =
                 )
             ]
         , form [ onSubmit HandleFormSubmission ]
-            [ input [ style "margin-bottom" "20rem" ] []
+            [ input [ style "margin-bottom" "2rem" ] []
             , p [] [ text "The select will automatically open to the top, if there is not enought space." ]
             , div
                 [ style "width" "500px", style "margin-bottom" "1rem" ]
-                [ SingleSelect.view { selected = model.selectedProduct, options = model.products, optionLabelFn = .name } model.select ]
+                [ SingleSelect.view
+                    { selected = model.selectedProduct
+                    , options = model.products
+                    , optionLabelFn = .name
+                    , settings = defaultSettings
+                    }
+                    model.select
+                ]
             , button [] [ text "Submit" ]
             ]
+        , div [ style "height" "100vh" ] []
         ]
 
 

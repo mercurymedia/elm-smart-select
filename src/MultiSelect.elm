@@ -1,26 +1,28 @@
-module MultiSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update)
+module MultiSelect exposing (SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition)
 
 {-| A select component for multi selection with local data.
 
 
 # Architecture
 
-@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update
+@docs SmartSelect, Msg, init, view, viewCustom, subscriptions, update, updatePosition
 
 -}
 
 import Browser.Dom as Dom
 import Browser.Events
 import Dict
-import Html exposing (Html, div, input, text)
-import Html.Attributes exposing (autocomplete, class, classList, id, style, value)
-import Html.Events as Events exposing (onClick, onInput, onMouseEnter)
+import Html exposing (Html, a)
+import Html.Styled exposing (div, text)
+import Html.Styled.Attributes exposing (autocomplete, classList, id, placeholder, style, value)
+import Html.Styled.Events as Events exposing (onClick, onInput, onMouseEnter)
 import Json.Decode as Decode
 import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Id as Id exposing (Prefix(..))
+import SmartSelect.Settings exposing (Settings)
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
-import Task
+import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewOptionsList, viewOptionsListItem, viewTextField, viewTextFieldContainer)
 
 
 {-| The opaque type representing a particular smart select instance.
@@ -40,6 +42,19 @@ type alias Model msg a =
     }
 
 
+{-| The type representing the select's configuration to be passed to MultiSelect.viewCustom
+-}
+type alias Config msg a =
+    { selected : List a
+    , options : List a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , searchFn : String -> List a -> List a
+    , viewSelectedOptionFn : a -> Html.Html msg
+    , settings : Settings
+    }
+
+
 {-| Opaque type representing cases to be passed to MultiSelect.update
 -}
 type Msg a
@@ -50,8 +65,10 @@ type Msg a
     | SetSearchText String
     | WindowResized ( Int, Int )
     | GotAlignment (Result Dom.Error Alignment)
+    | SelectionChanged (Maybe Int)
     | Open
     | Close
+    | Clear
 
 
 {-| Instantiates and returns a smart select.
@@ -81,28 +98,15 @@ subscriptions (SmartSelect model) =
     if model.isOpen then
         Sub.batch
             [ Browser.Events.onResize (\h w -> model.internalMsg <| WindowResized ( h, w ))
-            , Browser.Events.onMouseDown (clickedOutsideSelect (Id.select model.idPrefix) model.internalMsg)
+            , Browser.Events.onMouseDown (Utilities.clickedOutsideSelect (Id.select model.idPrefix) (model.internalMsg Close))
             ]
 
     else
         Sub.none
 
 
-clickedOutsideSelect : String -> (Msg a -> msg) -> Decode.Decoder msg
-clickedOutsideSelect componentId internalMsg =
-    Decode.field "target" (Utilities.eventIsOutsideComponent componentId)
-        |> Decode.andThen
-            (\isOutside ->
-                if isOutside then
-                    Decode.succeed <| internalMsg Close
-
-                else
-                    Decode.fail "inside component"
-            )
-
-
-keyActionMapper : { options : List ( Int, a ), selectedOptions : List a, focusedOptionIndex : Int, selectionMsg : ( List a, Msg a ) -> msg, internalMsg : Msg a -> msg } -> Decode.Decoder ( msg, Bool )
-keyActionMapper { options, selectedOptions, focusedOptionIndex, selectionMsg, internalMsg } =
+keyActionMapper : { options : List ( Int, a ), selectedOptions : List a, focusedOptionIndex : Int, selectionMsg : ( List a, Msg a ) -> msg, internalMsg : Msg a -> msg, searchText : String } -> Decode.Decoder ( msg, Bool )
+keyActionMapper { options, selectedOptions, focusedOptionIndex, selectionMsg, internalMsg, searchText } =
     Decode.field "key" Decode.string
         |> Decode.map Utilities.toKeyCode
         |> Decode.map
@@ -133,13 +137,24 @@ keyActionMapper { options, selectedOptions, focusedOptionIndex, selectionMsg, in
                     Enter ->
                         case Dict.get focusedOptionIndex (Dict.fromList options) of
                             Just item ->
-                                ( selectionMsg ( item :: selectedOptions, SetFocused <| Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex ), Utilities.preventDefault key )
+                                ( selectionMsg ( item :: selectedOptions, SelectionChanged <| Just (Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex) ), Utilities.preventDefault key )
 
                             Nothing ->
                                 ( internalMsg NoOp, Utilities.preventDefault key )
 
                     Escape ->
                         ( internalMsg Close, Utilities.preventDefault key )
+
+                    Backspace ->
+                        if searchText == "" && List.length selectedOptions > 0 then
+                            let
+                                newSelectedOptions =
+                                    List.take (List.length selectedOptions - 1) selectedOptions
+                            in
+                            ( selectionMsg ( newSelectedOptions, SelectionChanged <| Just (Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex) ), Utilities.preventDefault key )
+
+                        else
+                            ( internalMsg NoOp, Utilities.preventDefault key )
 
                     Other ->
                         ( internalMsg NoOp, Utilities.preventDefault key )
@@ -155,19 +170,19 @@ update msg (SmartSelect model) =
             ( SmartSelect model, Cmd.none )
 
         SetFocused idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, focusInput model.idPrefix model.internalMsg )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Utilities.focusInput model.idPrefix (model.internalMsg NoOp) )
 
         UpKeyPressed idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg model.idPrefix idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Utilities.scrollToOption (model.internalMsg NoOp) model.idPrefix idx )
 
         DownKeyPressed idx ->
-            ( SmartSelect { model | focusedOptionIndex = idx }, scrollToOption model.internalMsg model.idPrefix idx )
+            ( SmartSelect { model | focusedOptionIndex = idx }, Utilities.scrollToOption (model.internalMsg NoOp) model.idPrefix idx )
 
         SetSearchText text ->
             ( SmartSelect { model | searchText = text, focusedOptionIndex = 0 }, Cmd.none )
 
         WindowResized _ ->
-            ( SmartSelect model, getAlignment model.idPrefix model.internalMsg )
+            ( SmartSelect model, Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment)) )
 
         GotAlignment result ->
             case result of
@@ -177,6 +192,18 @@ update msg (SmartSelect model) =
                 Err _ ->
                     ( SmartSelect model, Cmd.none )
 
+        SelectionChanged newFocusedOptionIndex ->
+            let
+                focusedOptionIndex =
+                    Maybe.withDefault model.focusedOptionIndex newFocusedOptionIndex
+            in
+            ( SmartSelect { model | isOpen = True, searchText = "", focusedOptionIndex = focusedOptionIndex }
+            , Cmd.batch
+                [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+                , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+                ]
+            )
+
         Open ->
             if model.isOpen then
                 ( SmartSelect model, Cmd.none )
@@ -184,118 +211,88 @@ update msg (SmartSelect model) =
             else
                 ( SmartSelect { model | isOpen = True, focusedOptionIndex = 0 }
                 , Cmd.batch
-                    [ getAlignment model.idPrefix model.internalMsg
-                    , focusInput model.idPrefix model.internalMsg
+                    [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+                    , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
                     ]
                 )
 
         Close ->
             if model.isOpen then
-                ( SmartSelect { model | isOpen = False, searchText = "", alignment = Nothing }, Cmd.none )
+                ( SmartSelect { model | isOpen = False, searchText = "", alignment = Nothing }, Utilities.blurInput model.idPrefix (model.internalMsg NoOp) )
 
             else
                 ( SmartSelect model, Cmd.none )
 
+        Clear ->
+            let
+                cmd =
+                    if model.isOpen then
+                        Cmd.batch
+                            [ Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
+                            , Utilities.focusInput model.idPrefix (model.internalMsg NoOp)
+                            ]
 
-focusInput : Prefix -> (Msg a -> msg) -> Cmd msg
-focusInput prefix internalMsg =
-    Task.attempt (\_ -> internalMsg NoOp) (Dom.focus (Id.input prefix))
-
-
-getAlignment : Prefix -> (Msg a -> msg) -> Cmd msg
-getAlignment prefix internalMsg =
-    Task.attempt (\alignment -> internalMsg (GotAlignment alignment))
-        (Alignment.getElements (Id.container prefix) (Id.select prefix))
-
-
-scrollToOption : (Msg a -> msg) -> Prefix -> Int -> Cmd msg
-scrollToOption internalMsg prefix idx =
-    Task.attempt (\_ -> internalMsg NoOp) (scrollTask prefix idx)
+                    else
+                        Cmd.none
+            in
+            ( SmartSelect { model | searchText = "" }, cmd )
 
 
-scrollTask : Prefix -> Int -> Task.Task Dom.Error ()
-scrollTask prefix idx =
-    Task.sequence
-        [ Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (Id.option prefix idx) |> Task.map (\x -> x.element.height)
-        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.y)
-        , Dom.getElement (Id.container prefix) |> Task.map (\x -> x.element.height)
-        , Dom.getViewportOf (Id.container prefix) |> Task.map (\x -> x.viewport.y)
-        ]
-        |> Task.andThen
-            (\outcome ->
-                case outcome of
-                    optionY :: optionHeight :: containerY :: containerHeight :: containerScrollTop :: [] ->
-                        if (optionY + optionHeight) >= containerY + containerHeight then
-                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + ((optionY - (containerY + containerHeight)) + optionHeight))
-                                |> Task.onError (\_ -> Task.succeed ())
+{-| Triggers an update of the provided smart select's alignment
+-}
+updatePosition : SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+updatePosition (SmartSelect model) =
+    let
+        cmd =
+            if model.isOpen then
+                Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment))
 
-                        else if optionY < containerY then
-                            Dom.setViewportOf (Id.container prefix) 0 (containerScrollTop + (optionY - containerY))
-                                |> Task.onError (\_ -> Task.succeed ())
-
-                        else
-                            Task.succeed ()
-
-                    _ ->
-                        Task.succeed ()
-            )
-
-
-classPrefix : String
-classPrefix =
-    "elm-smart-select--"
+            else
+                Cmd.none
+    in
+    ( SmartSelect model
+    , cmd
+    )
 
 
 showOptions :
     { selectionMsg : ( List a, Msg a ) -> msg
     , internalMsg : Msg a -> msg
-    , selectedOptions : List a
-    , options : List ( Int, a )
-    , optionLabelFn : a -> String
-    , optionDescriptionFn : a -> String
-    , optionsContainerMaxHeight : Float
     , searchText : String
     , focusedOptionIndex : Int
-    , noResultsForMsg : String -> String
-    , noOptionsMsg : String
     , idPrefix : Prefix
+    , options : List ( Int, a )
+    , selected : List a
+    , optionLabelFn : a -> String
+    , optionDescriptionFn : a -> String
+    , settings : Settings
     }
-    -> Html msg
-showOptions { selectionMsg, internalMsg, selectedOptions, options, optionLabelFn, optionDescriptionFn, optionsContainerMaxHeight, searchText, focusedOptionIndex, noResultsForMsg, noOptionsMsg, idPrefix } =
-    if List.isEmpty options && searchText /= "" then
-        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text <| noResultsForMsg searchText ]
+    -> Html.Styled.Html msg
+showOptions { selectionMsg, internalMsg, searchText, focusedOptionIndex, idPrefix, options, selected, optionLabelFn, optionDescriptionFn, settings } =
+    viewOptionsList settings.theme
+        [ style "max-height" (String.fromFloat settings.optionsContainerMaxHeight ++ "px") ]
+        (if List.isEmpty options && searchText /= "" then
+            [ viewEmptyOptionsListItem settings.theme [] [ text <| settings.noResultsForMsg searchText ] ]
 
-    else if List.isEmpty options then
-        div [ class (classPrefix ++ "search-or-no-results-text") ] [ text noOptionsMsg ]
+         else if List.isEmpty options then
+            [ viewEmptyOptionsListItem settings.theme [] [ text settings.noOptionsMsg ] ]
 
-    else
-        div
-            [ style "max-height" (String.fromFloat optionsContainerMaxHeight ++ "px")
-            , class (classPrefix ++ "container")
-            ]
-            (List.map
+         else
+            List.map
                 (\( idx, option ) ->
-                    div
-                        [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option :: selectedOptions, SetFocused <| Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex ), True ))
+                    viewOptionsListItem settings.theme
+                        [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( option :: selected, SelectionChanged <| Just (Utilities.newFocusedOptionIndexAfterSelection focusedOptionIndex) ), True ))
                         , onMouseEnter <| internalMsg <| SetFocused idx
                         , id <| Id.option idPrefix idx
-                        , classList
-                            [ ( classPrefix ++ "select-option", True ), ( classPrefix ++ "select-option-focused", idx == focusedOptionIndex ) ]
                         ]
-                        [ div [] [ text (optionLabelFn option) ]
-                        , div
-                            [ classList
-                                [ ( classPrefix ++ "select-option-description", True )
-                                , ( classPrefix ++ "select-option-description-unfocused", idx /= focusedOptionIndex )
-                                , ( classPrefix ++ "select-option-description-focused", idx == focusedOptionIndex )
-                                ]
-                            ]
-                            [ text (optionDescriptionFn option) ]
-                        ]
+                        { label = optionLabelFn option
+                        , description = optionDescriptionFn option
+                        , isFocused = idx == focusedOptionIndex
+                        , isSelected = False
+                        }
                 )
                 options
-            )
+        )
 
 
 removeSelectedFromOptions : List a -> List a -> List a
@@ -321,11 +318,13 @@ selectedEntityWrapper :
     , selectedOptions : List a
     }
     -> a
-    -> Html msg
+    -> Html.Styled.Html msg
 selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } selectedOption =
     div
-        [ class (classPrefix ++ "selected-entity-wrapper"), Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( List.filter (\e -> e /= selectedOption) selectedOptions, NoOp ), True )) ]
-        [ viewSelectedOptionFn selectedOption ]
+        [ Events.stopPropagationOn "click" (Decode.succeed ( selectionMsg ( List.filter (\e -> e /= selectedOption) selectedOptions, SelectionChanged Nothing ), True )) ]
+        [ viewSelectedOptionFn selectedOption
+            |> Html.Styled.fromUnstyled
+        ]
 
 
 {-| The smart select view for selecting multiple options at a time with local data.
@@ -334,245 +333,120 @@ selectedEntityWrapper { selectionMsg, viewSelectedOptionFn, selectedOptions } se
   - `options` takes a list of the data being selected from.
   - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
   - `viewSelectedOptionFn` takes a function that expects and instance of the data being selected from and returns html to render a selected option.
+  - `settings` takes the settings record (see the `Settings` type)
 
 -}
-view : { selected : List a, options : List a, optionLabelFn : a -> String, viewSelectedOptionFn : a -> Html msg } -> SmartSelect msg a -> Html msg
-view { selected, options, optionLabelFn, viewSelectedOptionFn } smartSelect =
-    let
-        config =
-            { isDisabled = False
-            , selected = selected
-            , options = options
-            , optionLabelFn = optionLabelFn
-            , optionDescriptionFn = \_ -> ""
-            , viewSelectedOptionFn = viewSelectedOptionFn
-            , optionsContainerMaxHeight = 300
-            , searchFn =
-                \searchText allOptions ->
-                    List.filter (\option -> String.contains (String.toLower searchText) (String.toLower <| optionLabelFn option)) allOptions
-            , selectTitle = ""
-            , noResultsForMsg = \_ -> ""
-            , noOptionsMsg = ""
-            }
-    in
-    viewCustom config smartSelect
-
-
-{-| The smart select view for selecting multiple options at a time with local data.
-
-  - `isDisabled` takes a boolean that indicates whether or not the select can be opened.
-  - `selected` takes a list of the currently selected entities.
-  - `options` takes a list of the data being selected from.
-  - `optionLabelFn` takes a function that expects an instance of the data being selected from and returns a string naming/labeling the instance, i.e. if it is a "Product" being selected, the label may be "Garden Hose".
-  - `optionDescriptionFn` takes a function that expects an instance of the data being selected from and returns a string describing the instance, i.e. if the label is "Garden Hose", the description may be "30 ft".
-  - `viewSelectedOptionFn` takes a function that expects an instance of the data being selected from and returns html to render a selected option.
-  - `optionsContainerMaxHeight` takes a float that specifies the max height of the container of the selectable options.
-  - `searchFn` takes a function that expects the search text and the items to search and returns the filtered items.
-  - `selectTitle` takes a string to label the select in its closed state and non-selected state.
-  - `noResultsForMsg` takes a function that expects a string and returns a message indicating that the search for the provided string returned no results.
-  - `noOptionsMsg` takes a string to indicate that no options exist in the select.
-
-```elm
-import Html exposing (Html, div)
-import MultiSelect
-
-type Msg
-    = HandleSelectUpdate (MultiSelect.Msg Product)
-    | HandleSelection ( List Product, MultiSelect.Msg Product )
-
-type alias Product =
-    { name : String
-    , description : String
-    , price : Float
-    }
-
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { products = exampleProducts
-      , select =
-            MultiSelect.init
-                { selectionMsg = HandleSelection
-                , internalMsg = HandleSelectUpdate
-                }
-      , selectedProduct = Nothing
-      }
-    , Cmd.none
-    )
-
-type alias Model =
-    { products : List Product
-    , select : MultiSelect.SmartSelect Msg Product
-    , selectedProducts : List Product
-    }
-
-viewSelectedProduct : Product -> Html Msg
-viewSelectedProduct product =
-    div []
-        [ text (product.name ++ " - " ++ ("$" ++ String.fromFloat product.price)) ]
-
-viewCustomProductSelect : Model -> Html Msg
-viewCustomProductSelect model =
-    MultiSelect.viewCustom
-        { isDisabled = False
-        , selected = model.selectedProducts
-        , options = model.products
-        , optionLabelFn = .name
-        , optionDescriptionFn = \option -> "$" ++ String.fromFloat option.price
-        , viewSelectedOptionFn = viewSelectedProduct
-        , optionsContainerMaxHeight = 500
-        , searchFn =
-            \searchText allOptions ->
-                List.filter
-                    (\option ->
-                        String.contains (String.toLower searchText) (String.toLower option.name)
-                            || String.contains (String.toLower searchText) (String.toLower option.description)
-                    )
-                    allOptions
-        , selectTitle = "Select a Product"
-        , noResultsForMsg = \searchText -> "No results found for: " ++ searchText
-        , noOptionsMsg = "There are no options to select"
-        }
-        model.select
-```
-
--}
-viewCustom :
-    { isDisabled : Bool
-    , selected : List a
+view :
+    { selected : List a
     , options : List a
     , optionLabelFn : a -> String
-    , optionDescriptionFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , optionsContainerMaxHeight : Float
-    , searchFn : String -> List a -> List a
-    , selectTitle : String
-    , noResultsForMsg : String -> String
-    , noOptionsMsg : String
+    , settings : Settings
     }
     -> SmartSelect msg a
     -> Html msg
-viewCustom { isDisabled, selected, options, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, optionsContainerMaxHeight, searchFn, selectTitle, noResultsForMsg, noOptionsMsg } (SmartSelect model) =
+view config smartSelect =
+    viewStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewStyled :
+    { selected : List a
+    , options : List a
+    , optionLabelFn : a -> String
+    , viewSelectedOptionFn : a -> Html msg
+    , settings : Settings
+    }
+    -> SmartSelect msg a
+    -> Html.Styled.Html msg
+viewStyled { selected, options, optionLabelFn, viewSelectedOptionFn, settings } smartSelect =
     let
-        selectedLabel =
-            if List.length selected == 0 then
-                text selectTitle
-
-            else
-                div [ class (classPrefix ++ "multi-selected-container") ]
-                    (List.map
-                        (selectedEntityWrapper
-                            { selectionMsg = model.selectionMsg
-                            , viewSelectedOptionFn = viewSelectedOptionFn
-                            , selectedOptions = selected
-                            }
-                        )
-                        selected
-                    )
+        config =
+            { selected = selected
+            , options = options
+            , optionLabelFn = optionLabelFn
+            , optionDescriptionFn = \_ -> ""
+            , searchFn =
+                \searchText allOptions ->
+                    List.filter (\option -> String.contains (String.toLower searchText) (String.toLower <| optionLabelFn option)) allOptions
+            , viewSelectedOptionFn = viewSelectedOptionFn
+            , settings = settings
+            }
     in
-    if isDisabled then
-        div
-            [ id (Id.select model.idPrefix)
-            , class
-                (String.join " "
-                    [ classPrefix ++ "selector-container"
-                    , classPrefix ++ "multi-selector-container-min-height"
-                    , classPrefix ++ "multi-bg-color"
-                    , classPrefix ++ "disabled"
-                    ]
-                )
-            ]
-            [ selectedLabel ]
+    viewCustomStyled config smartSelect
 
-    else
-        div
-            [ id (Id.select model.idPrefix)
-            , onClick <| model.internalMsg Open
-            , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
-            , Events.preventDefaultOn "keydown"
-                (keyActionMapper
-                    { options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
-                    , selectedOptions = selected
-                    , focusedOptionIndex = model.focusedOptionIndex
-                    , selectionMsg = model.selectionMsg
-                    , internalMsg = model.internalMsg
-                    }
-                )
-            , classList
-                [ ( String.join " "
-                        [ classPrefix ++ "selector-container"
-                        , classPrefix ++ "multi-selector-container-min-height"
-                        , classPrefix ++ "multi-bg-color"
-                        ]
-                  , True
-                  )
-                , ( classPrefix ++ "enabled-closed", not model.isOpen )
-                , ( classPrefix ++ "enabled-opened", model.isOpen )
+
+{-| The smart select custom view for selecting multiple options at a time with local data. You have to pass a custom configuration here.
+-}
+viewCustom : Config msg a -> SmartSelect msg a -> Html msg
+viewCustom config smartSelect =
+    viewCustomStyled config smartSelect
+        |> Html.Styled.toUnstyled
+
+
+viewCustomStyled : Config msg a -> SmartSelect msg a -> Html.Styled.Html msg
+viewCustomStyled config (SmartSelect model) =
+    let
+        { selected, options, optionLabelFn, optionDescriptionFn, viewSelectedOptionFn, searchFn, settings } =
+            config
+
+        filteredAndIndexedOptions =
+            filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
+    in
+    viewTextFieldContainer settings.theme
+        [ id (Id.select model.idPrefix)
+        , classList
+            [ ( "enabled-closed", not model.isOpen )
+            , ( "enabled-opened", model.isOpen )
+            ]
+        , Events.stopPropagationOn "keypress" (Decode.map Utilities.alwaysStopPropogation (Decode.succeed <| model.internalMsg NoOp))
+        , Events.preventDefaultOn "keydown"
+            (keyActionMapper
+                { options = filteredAndIndexedOptions
+                , selectedOptions = selected
+                , focusedOptionIndex = model.focusedOptionIndex
+                , selectionMsg = model.selectionMsg
+                , internalMsg = model.internalMsg
+                , searchText = model.searchText
+                }
+            )
+        ]
+        [ viewTextField settings.theme
+            [ onClick <| model.internalMsg Open ]
+            { inputAttributes =
+                [ id (Id.input model.idPrefix)
+                , autocomplete False
+                , onInput <| \val -> model.internalMsg <| SetSearchText val
+                , value model.searchText
+                , placeholder settings.placeholder
                 ]
+            , isDisabled = settings.isDisabled
+            , selectedOptions =
+                List.map
+                    (selectedEntityWrapper
+                        { selectionMsg = model.selectionMsg
+                        , viewSelectedOptionFn = viewSelectedOptionFn
+                        , selectedOptions = selected
+                        }
+                    )
+                    selected
+            , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], Clear ), True )) ]
+            }
+        , Alignment.view
+            settings.theme
+            model.idPrefix
+            model.alignment
+            [ showOptions
+                { selectionMsg = model.selectionMsg
+                , internalMsg = model.internalMsg
+                , searchText = model.searchText
+                , focusedOptionIndex = model.focusedOptionIndex
+                , idPrefix = model.idPrefix
+                , options = filteredAndIndexedOptions
+                , selected = selected
+                , optionLabelFn = optionLabelFn
+                , optionDescriptionFn = optionDescriptionFn
+                , settings = settings
+                }
             ]
-            [ div [ class (classPrefix ++ "multi-selected-and-results-container") ]
-                [ if model.isOpen then
-                    div
-                        [ class (classPrefix ++ "multi-selected-container")
-                        ]
-                        ([ div
-                            [ class (classPrefix ++ "multi-input-container") ]
-                            [ input
-                                [ id (Id.input model.idPrefix)
-                                , class (classPrefix ++ "multi-input")
-                                , autocomplete False
-                                , onInput <| \val -> model.internalMsg <| SetSearchText val
-                                , value model.searchText
-                                ]
-                                []
-                            ]
-                         ]
-                            |> List.append
-                                (List.map
-                                    (selectedEntityWrapper
-                                        { selectionMsg = model.selectionMsg
-                                        , viewSelectedOptionFn = viewSelectedOptionFn
-                                        , selectedOptions = selected
-                                        }
-                                    )
-                                    selected
-                                )
-                        )
-
-                  else
-                    selectedLabel
-                , if model.isOpen then
-                    div
-                        [ classList
-                            [ ( String.join " "
-                                    [ classPrefix ++ "options-container"
-                                    , classPrefix ++ "multi-bg-color"
-                                    ]
-                              , True
-                              )
-                            ]
-                        ]
-                        [ Alignment.view
-                            model.idPrefix
-                            classPrefix
-                            model.alignment
-                            [ showOptions
-                                { selectionMsg = model.selectionMsg
-                                , internalMsg = model.internalMsg
-                                , selectedOptions = selected
-                                , options = filterAndIndexOptions { options = options, selectedOptions = selected, searchFn = searchFn, searchText = model.searchText }
-                                , optionLabelFn = optionLabelFn
-                                , optionDescriptionFn = optionDescriptionFn
-                                , optionsContainerMaxHeight = optionsContainerMaxHeight
-                                , searchText = model.searchText
-                                , focusedOptionIndex = model.focusedOptionIndex
-                                , noResultsForMsg = noResultsForMsg
-                                , noOptionsMsg = noOptionsMsg
-                                , idPrefix = model.idPrefix
-                                }
-                            ]
-                        ]
-
-                  else
-                    text ""
-                ]
-            ]
+        ]

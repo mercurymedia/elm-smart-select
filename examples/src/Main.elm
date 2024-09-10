@@ -5,6 +5,7 @@ import Browser.Navigation as Nav
 import Html exposing (Html, a, div, span, text)
 import Html.Attributes exposing (class, href, style, target)
 import MultiSelectExample
+import MultiSelectRemoteExample
 import SingleSelectExample
 import SingleSelectRemoteExample
 import Url exposing (Url)
@@ -37,6 +38,7 @@ type Page
     = SingleSelect SingleSelectExample.Model
     | SingleSelectRemote SingleSelectRemoteExample.Model
     | MultiSelect MultiSelectExample.Model
+    | MultiSelectRemote MultiSelectRemoteExample.Model
     | NotFound
 
 
@@ -46,6 +48,7 @@ type Msg
     | SingleSelectMsg SingleSelectExample.Msg
     | SingleSelectRemoteMsg SingleSelectRemoteExample.Msg
     | MultiSelectMsg MultiSelectExample.Msg
+    | MultiSelectRemoteMsg MultiSelectRemoteExample.Msg
 
 
 
@@ -79,6 +82,9 @@ subscriptions model =
 
         MultiSelect selectModel ->
             Sub.map MultiSelectMsg (MultiSelectExample.subscriptions selectModel)
+
+        MultiSelectRemote selectModel ->
+            Sub.map MultiSelectRemoteMsg (MultiSelectRemoteExample.subscriptions selectModel)
 
 
 
@@ -123,6 +129,13 @@ update msg model =
                     MultiSelectExample.update subMsg subModel
             in
             ( { model | page = MultiSelect updatedSubModel }, Cmd.map MultiSelectMsg pageCmd )
+
+        ( MultiSelectRemoteMsg subMsg, MultiSelectRemote subModel ) ->
+            let
+                ( updatedSubModel, pageCmd ) =
+                    MultiSelectRemoteExample.update subMsg subModel
+            in
+            ( { model | page = MultiSelectRemote updatedSubModel }, Cmd.map MultiSelectRemoteMsg pageCmd )
 
         ( _, _ ) ->
             ( model, Cmd.none )
@@ -181,7 +194,9 @@ viewNavigation =
     div [ class "navigation" ]
         [ div [] [ text "Examples" ]
         , viewPageLink "SingleSelect" "/"
+        , viewPageLink "SingleSelectRemote" "/remote"
         , viewPageLink "MultiSelect" "/multi"
+        , viewPageLink "MultiSelectRemote" "/multi-remote"
         ]
 
 
@@ -215,6 +230,9 @@ viewPage page =
 
             MultiSelect pageModel ->
                 toPage MultiSelectMsg (MultiSelectExample.view pageModel)
+
+            MultiSelectRemote pageModel ->
+                toPage MultiSelectRemoteMsg (MultiSelectRemoteExample.view pageModel)
         ]
 
 
@@ -231,7 +249,9 @@ changePageTo url model =
         parser =
             Parser.oneOf
                 [ Parser.map (SingleSelectExample.init |> toPage SingleSelect SingleSelectMsg) Parser.top
+                , Parser.map (SingleSelectRemoteExample.init |> toPage SingleSelectRemote SingleSelectRemoteMsg) (Parser.s "remote")
                 , Parser.map (MultiSelectExample.init |> toPage MultiSelect MultiSelectMsg) (Parser.s "multi")
+                , Parser.map (MultiSelectRemoteExample.init |> toPage MultiSelectRemote MultiSelectRemoteMsg) (Parser.s "multi-remote")
                 ]
     in
     Parser.parse parser url

@@ -2,7 +2,7 @@ module SmartSelect.Alignment exposing
     ( Alignment
     , init, getElements
     , style
-    , view
+    , getAlignment, view
     )
 
 {-| Determine the Alignment for the select options container
@@ -30,9 +30,12 @@ module SmartSelect.Alignment exposing
 -}
 
 import Browser.Dom as Dom exposing (Element)
-import Html exposing (Html, div)
-import Html.Attributes as Attrs
+import Css
+import Html.Styled exposing (div)
+import Html.Styled.Attributes as Attrs
 import SmartSelect.Id as Id
+import SmartSelect.Settings exposing (Theme)
+import SmartSelect.ViewComponents exposing (classPrefix)
 import Task exposing (Task)
 import Task.Extra as TaskExtra
 
@@ -78,6 +81,12 @@ init { container, select, viewport } =
             Below
 
 
+getAlignment : Id.Prefix -> (Result Dom.Error Alignment -> msg) -> Cmd msg
+getAlignment prefix handleResponse =
+    Task.attempt handleResponse
+        (getElements (Id.container prefix) (Id.select prefix))
+
+
 getElements : String -> String -> Task Dom.Error Alignment
 getElements containerId selectId =
     Task.succeed (\container select viewport -> init { container = container, select = select, viewport = viewport })
@@ -90,7 +99,7 @@ getElements containerId selectId =
 -- Test
 
 
-style : Maybe Alignment -> List (Html.Attribute msg)
+style : Maybe Alignment -> List (Html.Styled.Attribute msg)
 style alignment =
     case alignment of
         Just (Alignment (Position { x, y, width }) placement) ->
@@ -115,34 +124,44 @@ style alignment =
             ]
 
 
-containerClass : String -> Maybe Alignment -> String
-containerClass classPrefix alignment =
+containerStyles : Maybe Alignment -> List Css.Style
+containerStyles alignment =
     case alignment of
         Just (Alignment _ Below) ->
-            classPrefix ++ "options-container-below"
+            [ Css.flexDirection Css.column ]
 
         Just (Alignment _ Above) ->
-            classPrefix ++ "options-container-above"
+            [ Css.flexDirection Css.columnReverse ]
 
         Nothing ->
-            classPrefix ++ "options-container-below"
+            [ Css.flexDirection Css.column ]
 
 
-view : Id.Prefix -> String -> Maybe Alignment -> List (Html msg) -> Html msg
-view prefix classPrefix alignment children =
+view : Theme -> Id.Prefix -> Maybe Alignment -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+view theme prefix alignment children =
     div
         (Attrs.id (Id.container prefix)
-            :: Attrs.class (classPrefix ++ "container-wrapper")
+            :: Attrs.css [ Css.padding2 (Css.rem 0.25) (Css.rem 0) ]
+            :: Attrs.class (classPrefix theme.classNamePrefix "options-list-container")
             :: style alignment
         )
         [ div
-            [ Attrs.class
-                (String.join
-                    " "
-                    [ classPrefix ++ "options-container"
-                    , containerClass classPrefix alignment
-                    ]
-                )
+            [ Attrs.css
+                [ Css.backgroundColor theme.color.background.optionsContainer
+                , Css.zIndex (Css.int 50)
+                , Css.displayFlex
+                , Css.border3 theme.borderWidth Css.solid theme.color.border
+                , Css.borderRadius theme.borderRadius.base
+                , Css.boxShadow5
+                    theme.boxShadow.offsetX
+                    theme.boxShadow.offsetY
+                    theme.boxShadow.blurRadius
+                    theme.boxShadow.spreadRadius
+                    theme.boxShadow.color
+                , Css.overflow Css.auto
+                , Css.batch (containerStyles alignment)
+                ]
+            , Attrs.class (classPrefix theme.classNamePrefix "options-list-container-inner")
             ]
             children
         ]

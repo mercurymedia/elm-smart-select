@@ -1,4 +1,4 @@
-module SmartSelect.Icons exposing (toHtml, withSize, withStrokeWidth, x)
+module SmartSelect.Icons exposing (Icon(..), chevronDown, toHtml, withSize, withStrokeWidth, x)
 
 import Html exposing (Html)
 import Svg exposing (Svg, svg)
@@ -116,4 +116,16 @@ x =
     makeBuilder "x"
         [ Svg.line [ x1 "18", y1 "6", x2 "6", y2 "18" ] []
         , Svg.line [ x1 "6", y1 "6", x2 "18", y2 "18" ] []
+        ]
+
+
+{-| chevron-down
+
+![image](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwb2x5bGluZSBwb2ludHM9IjYgOSAxMiAxNSAxOCA5Ij48L3BvbHlsaW5lPjwvc3ZnPg==)
+
+-}
+chevronDown : Icon
+chevronDown =
+    makeBuilder "chevron-down"
+        [ Svg.polyline [ points "6 9 12 15 18 9" ] []
         ]
