@@ -1,0 +1,57 @@
+name: CI
+
+# CI is run on pull requests and on push to the main branch
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    # This job is to run the tests
+    name: Run tests of elm-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: ['16']
+
+    env:
+      ELM_HOME: '${{ github.workspace }}/elm-home'
+
+    steps:
+      # Clone the repository
+      - uses: actions/checkout@v2
+
+      # Setup Node JS
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+
+      # Install elm and cache ELM_HOME
+      - name: Install elm
+        uses: mpizenberg/elm-tooling-action@v1.2
+        with:
+          cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
+          cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
+
+      - name: Run the tests
+        run: npm test:elm
+
+  check_formatting:
+    # This job is to check the formatting of files
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      # Clone the repository
+      - uses: actions/checkout@v2
+
+      # Install elm-format
+      - name: Install elm-format
+        uses: mpizenberg/elm-tooling-action@v1.2
+        with:
+          cache-key: format-${{ matrix.os }}-node${{ matrix.node }}-0
+          cache-restore-key: format-${{ matrix.os }}-node${{ matrix.node }}
+
+      - name: Check formatting
+        run: npm run test:format
