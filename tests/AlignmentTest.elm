@@ -2,7 +2,7 @@ module AlignmentTest exposing (suite)
 
 import Browser.Dom as Dom exposing (Element)
 import Expect
-import Html.Attributes as Attrs
+import Html.Styled.Attributes as Attrs
 import SmartSelect.Alignment as Alignment
 import Test exposing (Test, describe, test)
 
