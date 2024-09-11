@@ -41,7 +41,7 @@ jobs:
         run: npm install
 
       - name: Check formatting
-        run: npm test:format
+        run: npm run test:format
 
       - name: Run the tests
-        run: npm test:elm
+        run: npm run test:elm
