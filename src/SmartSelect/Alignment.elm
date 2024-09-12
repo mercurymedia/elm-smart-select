@@ -141,7 +141,7 @@ view : Theme -> Id.Prefix -> Maybe Alignment -> List (Html.Styled.Html msg) -> H
 view theme prefix alignment children =
     div
         (Attrs.id (Id.container prefix)
-            :: Attrs.css [ Css.padding2 (Css.rem 0.25) (Css.rem 0) ]
+            :: Attrs.css [ Css.padding2 (Css.rem 0.25) (Css.rem 0), Css.zIndex (Css.int theme.zIndex) ]
             :: Attrs.class (classPrefix theme.classNamePrefix "options-list-container")
             :: style alignment
         )

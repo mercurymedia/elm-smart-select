@@ -99,6 +99,8 @@ type alias Theme =
         , color : Css.Color
         }
     , transition : { duration : Float }
+    , zIndex : Int
+    , className : String
     , classNamePrefix : String
     }
 
@@ -186,5 +188,7 @@ defaultTheme =
         , color = Css.rgba 0 0 0 0.25
         }
     , transition = { duration = 300 }
+    , zIndex = 1000
+    , className = ""
     , classNamePrefix = "elm-smart-select"
     }

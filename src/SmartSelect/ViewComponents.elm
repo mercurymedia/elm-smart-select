@@ -57,7 +57,12 @@ classPrefix prefix className =
 
 viewTextFieldContainer : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewTextFieldContainer theme attrs children =
-    div (class (classPrefix theme.classNamePrefix "text-field-container") :: attrs)
+    div
+        (class (classPrefix theme.classNamePrefix "text-field-container")
+            :: css [ Css.width (Css.pct 100) ]
+            :: class theme.className
+            :: attrs
+        )
         children
 
 
@@ -159,6 +164,7 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
     div
         ([ css
             [ Css.displayFlex
+            , Css.width (Css.pct 100)
             , Css.flexWrap Css.wrap
             , Css.alignItems Css.center
             , Css.property "gap" "0.25rem"
