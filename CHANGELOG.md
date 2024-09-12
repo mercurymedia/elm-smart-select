@@ -7,6 +7,7 @@
   1. `className` - a String that will be attached to the outer container element of the smart select
   2. `zIndex`- an Int that defines the `z-index` on the options-container element
 - The `width` of the container elment has been fixed to `100%`
+- A new setting `icon` has been added to the `Settings` record - you can pass your custom icon or HTML to it. Default is a chevron-down.
 
 ## [5.0.0]
 

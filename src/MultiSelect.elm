@@ -51,7 +51,7 @@ type alias Config msg a =
     , optionDescriptionFn : a -> String
     , searchFn : String -> List a -> List a
     , viewSelectedOptionFn : a -> Html.Html msg
-    , settings : Settings
+    , settings : Settings msg
     }
 
 
@@ -265,7 +265,7 @@ showOptions :
     , selected : List a
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
-    , settings : Settings
+    , settings : Settings msg
     }
     -> Html.Styled.Html msg
 showOptions { selectionMsg, internalMsg, searchText, focusedOptionIndex, idPrefix, options, selected, optionLabelFn, optionDescriptionFn, settings } =
@@ -341,7 +341,7 @@ view :
     , options : List a
     , optionLabelFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , settings : Settings
+    , settings : Settings msg
     }
     -> SmartSelect msg a
     -> Html msg
@@ -355,7 +355,7 @@ viewStyled :
     , options : List a
     , optionLabelFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , settings : Settings
+    , settings : Settings msg
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
@@ -431,6 +431,7 @@ viewCustomStyled config (SmartSelect model) =
                     )
                     selected
             , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], Clear ), True )) ]
+            , icon = settings.icon
             }
         , Alignment.view
             settings.theme

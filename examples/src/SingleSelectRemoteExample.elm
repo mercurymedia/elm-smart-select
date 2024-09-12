@@ -117,7 +117,7 @@ init =
     )
 
 
-customRemoteSettings : RemoteSettings Language
+customRemoteSettings : RemoteSettings msg Language
 customRemoteSettings =
     defaultRemoteSettings httpRemoteSearchAttrs
 

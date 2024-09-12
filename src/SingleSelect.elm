@@ -51,13 +51,13 @@ type alias Model msg a =
 
 {-| The type representing the select's configuration to be passed to SingleSelect.viewCustom
 -}
-type alias Config a =
+type alias Config msg a =
     { selected : Maybe a
     , options : List a
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , searchFn : String -> List a -> List a
-    , settings : Settings
+    , settings : Settings msg
     }
 
 
@@ -238,7 +238,7 @@ showOptions :
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
     , idPrefix : Prefix
-    , settings : Settings
+    , settings : Settings msg
     }
     -> Html.Styled.Html msg
 showOptions { selectionMsg, selected, internalMsg, options, optionLabelFn, optionDescriptionFn, searchText, focusedOptionIndex, idPrefix, settings } =
@@ -293,7 +293,7 @@ view :
     { selected : Maybe a
     , options : List a
     , optionLabelFn : a -> String
-    , settings : Settings
+    , settings : Settings msg
     }
     -> SmartSelect msg a
     -> Html msg
@@ -306,7 +306,7 @@ viewStyled :
     { selected : Maybe a
     , options : List a
     , optionLabelFn : a -> String
-    , settings : Settings
+    , settings : Settings msg
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
@@ -328,13 +328,13 @@ viewStyled { selected, options, optionLabelFn, settings } smartSelect =
 
 {-| The smart select view for selecting one option at a time with local data. You have to pass a custom configuration here.
 -}
-viewCustom : Config a -> SmartSelect msg a -> Html msg
+viewCustom : Config msg a -> SmartSelect msg a -> Html msg
 viewCustom config smartSelect =
     viewCustomStyled config smartSelect
         |> Html.Styled.toUnstyled
 
 
-viewCustomStyled : Config a -> SmartSelect msg a -> Html.Styled.Html msg
+viewCustomStyled : Config msg a -> SmartSelect msg a -> Html.Styled.Html msg
 viewCustomStyled config (SmartSelect model) =
     let
         { selected, options, searchFn, optionLabelFn, optionDescriptionFn, settings } =
@@ -381,6 +381,7 @@ viewCustomStyled config (SmartSelect model) =
             , isDisabled = settings.isDisabled
             , selectedOptions = []
             , clearIconAttributes = Nothing
+            , icon = settings.icon
             }
         , Alignment.view
             settings.theme
