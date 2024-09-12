@@ -11,27 +11,29 @@ module SmartSelect.Settings exposing (Settings, RemoteSettings, RemoteQueryAttrs
 
 import Color
 import Css
+import Html exposing (Html)
 import Http exposing (Header)
 import Json.Decode exposing (Decoder)
 
 
 {-| The type representing the select's general settings to be passed to all view functions
 -}
-type alias Settings =
+type alias Settings msg =
     { theme : Theme
     , isDisabled : Bool
     , optionsContainerMaxHeight : Float
     , placeholder : String
     , noResultsForMsg : String -> String
     , noOptionsMsg : String
+    , icon : Maybe (Html msg)
     , id : String
     }
 
 
 {-| The type representing the select's remote settings (including the general settings) to be passed to all view & update functions of the remote variants
 -}
-type alias RemoteSettings a =
-    { settings : Settings
+type alias RemoteSettings msg a =
+    { settings : Settings msg
     , spinnerColor : Color.Color
     , characterThresholdPrompt : Int -> String
     , characterSearchThreshold : Int
@@ -99,6 +101,8 @@ type alias Theme =
         , color : Css.Color
         }
     , transition : { duration : Float }
+    , zIndex : Int
+    , className : String
     , classNamePrefix : String
     }
 
@@ -106,7 +110,7 @@ type alias Theme =
 {-| A record of default settings for all the select variants. Extend this if
 you want to further customize.
 -}
-defaultSettings : Settings
+defaultSettings : Settings msg
 defaultSettings =
     { theme = defaultTheme
     , isDisabled = False
@@ -114,6 +118,7 @@ defaultSettings =
     , placeholder = "Search..."
     , noResultsForMsg = \_ -> "No results"
     , noOptionsMsg = "No options available"
+    , icon = Nothing
     , id = "elm-smart-select"
     }
 
@@ -124,7 +129,7 @@ you want to further customize.
 Requires the `RemoteQueryAttrs`.
 
 -}
-defaultRemoteSettings : RemoteQueryAttrs a -> RemoteSettings a
+defaultRemoteSettings : RemoteQueryAttrs a -> RemoteSettings msg a
 defaultRemoteSettings queryAttrs =
     { settings = defaultSettings
     , spinnerColor = Color.rgb255 57 179 181
@@ -186,5 +191,7 @@ defaultTheme =
         , color = Css.rgba 0 0 0 0.25
         }
     , transition = { duration = 300 }
+    , zIndex = 1000
+    , className = ""
     , classNamePrefix = "elm-smart-select"
     }

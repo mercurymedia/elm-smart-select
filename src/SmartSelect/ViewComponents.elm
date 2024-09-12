@@ -15,6 +15,7 @@ import Color
 import Css
 import Css.Global
 import Css.Transitions
+import Html
 import Html.Styled exposing (div, input, span, text)
 import Html.Styled.Attributes exposing (attribute, class, css, disabled)
 import Html.Styled.Events exposing (onClick)
@@ -57,7 +58,12 @@ classPrefix prefix className =
 
 viewTextFieldContainer : Theme -> List (Html.Styled.Attribute msg) -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
 viewTextFieldContainer theme attrs children =
-    div (class (classPrefix theme.classNamePrefix "text-field-container") :: attrs)
+    div
+        (class (classPrefix theme.classNamePrefix "text-field-container")
+            :: css [ Css.width (Css.pct 100) ]
+            :: class theme.className
+            :: attrs
+        )
         children
 
 
@@ -142,9 +148,10 @@ viewTextField :
         , clearIconAttributes : Maybe (List (Html.Styled.Attribute msg))
         , selectedOptions : List (Html.Styled.Html msg)
         , isDisabled : Bool
+        , icon : Maybe (Html.Html msg)
         }
     -> Html.Styled.Html msg
-viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttributes, isDisabled } =
+viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttributes, isDisabled, icon } =
     let
         disabledStyles =
             if isDisabled then
@@ -159,6 +166,7 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
     div
         ([ css
             [ Css.displayFlex
+            , Css.width (Css.pct 100)
             , Css.flexWrap Css.wrap
             , Css.alignItems Css.center
             , Css.property "gap" "0.25rem"
@@ -205,16 +213,36 @@ viewTextField theme attrs { inputAttributes, selectedOptions, clearIconAttribute
                                  ]
                                     ++ clearAttrs
                                 )
-                                Icons.x
+                                clearIcon
 
                         Nothing ->
                             text ""
                     , viewIcon theme
                         [ class (classPrefix theme.classNamePrefix "chevron-button") ]
-                        Icons.chevronDown
+                        (Maybe.map Html.Styled.fromUnstyled icon
+                            |> Maybe.withDefault chevronIcon
+                        )
                     ]
                ]
         )
+
+
+clearIcon : Html.Styled.Html msg
+clearIcon =
+    Icons.x
+        |> Icons.withSize 16
+        |> Icons.withStrokeWidth 2
+        |> Icons.toHtml []
+        |> Html.Styled.fromUnstyled
+
+
+chevronIcon : Html.Styled.Html msg
+chevronIcon =
+    Icons.chevronDown
+        |> Icons.withSize 16
+        |> Icons.withStrokeWidth 2
+        |> Icons.toHtml []
+        |> Html.Styled.fromUnstyled
 
 
 viewInput : Theme -> List (Html.Styled.Attribute msg) -> Html.Styled.Html msg
@@ -245,7 +273,7 @@ viewInput theme attrs =
         []
 
 
-viewIcon : Theme -> List (Html.Styled.Attribute msg) -> Icons.Icon -> Html.Styled.Html msg
+viewIcon : Theme -> List (Html.Styled.Attribute msg) -> Html.Styled.Html msg -> Html.Styled.Html msg
 viewIcon theme attrs icon =
     span
         ([ css
@@ -265,12 +293,7 @@ viewIcon theme attrs icon =
          ]
             ++ attrs
         )
-        [ icon
-            |> Icons.withSize 16
-            |> Icons.withStrokeWidth 2
-            |> Icons.toHtml []
-            |> Html.Styled.fromUnstyled
-        ]
+        [ icon ]
 
 
 viewError : Theme -> List (Html.Styled.Attribute msg) -> { message : String, onDismiss : msg } -> Html.Styled.Html msg

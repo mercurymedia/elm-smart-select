@@ -52,11 +52,11 @@ type alias Model msg a =
 
 {-| The type representing the select's configuration to be passed to SingleSelectRemote.viewCustom
 -}
-type alias Config a =
+type alias Config msg a =
     { selected : Maybe a
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
 
 
@@ -104,7 +104,7 @@ init { selectionMsg, internalMsg, idPrefix } =
 
 {-| Events external to the smart select to which it is subscribed.
 -}
-subscriptions : RemoteSettings a -> SmartSelect msg a -> Sub msg
+subscriptions : RemoteSettings msg a -> SmartSelect msg a -> Sub msg
 subscriptions remoteSettings (SmartSelect model) =
     if model.isOpen then
         Sub.batch
@@ -192,7 +192,7 @@ debounceConfig { internalMsg, debounceDuration } =
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
 -}
-update : Msg a -> RemoteSettings a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+update : Msg a -> RemoteSettings msg a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
 update msg remoteSettings (SmartSelect model) =
     case msg of
         NoOp ->
@@ -319,7 +319,7 @@ showOptions :
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , idPrefix : Prefix
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> Html.Styled.Html msg
 showOptions { selectionMsg, selectedOption, internalMsg, focusedOptionIndex, searchText, options, optionLabelFn, optionDescriptionFn, idPrefix, remoteSettings } =
@@ -371,7 +371,7 @@ viewRemoteData :
     , optionDescriptionFn : a -> String
     , spinner : Spinner.Model
     , idPrefix : Prefix
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> Html.Styled.Html msg
 viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOption, remoteData, optionLabelFn, optionDescriptionFn, spinner, idPrefix, remoteSettings } =
@@ -436,7 +436,7 @@ indexOptions options =
 view :
     { selected : Maybe a
     , optionLabelFn : a -> String
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> SmartSelect msg a
     -> Html msg
@@ -448,7 +448,7 @@ view config smartSelect =
 viewStyled :
     { selected : Maybe a
     , optionLabelFn : a -> String
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
@@ -466,13 +466,13 @@ viewStyled { selected, optionLabelFn, remoteSettings } smartSelect =
 
 {-| The smart select view for selecting one option at a time with remote data. You have to pass a custom configuration here.
 -}
-viewCustom : Config a -> SmartSelect msg a -> Html msg
+viewCustom : Config msg a -> SmartSelect msg a -> Html msg
 viewCustom config smartSelect =
     viewCustomStyled config smartSelect
         |> Html.Styled.toUnstyled
 
 
-viewCustomStyled : Config a -> SmartSelect msg a -> Html.Styled.Html msg
+viewCustomStyled : Config msg a -> SmartSelect msg a -> Html.Styled.Html msg
 viewCustomStyled config (SmartSelect model) =
     let
         { selected, optionLabelFn, optionDescriptionFn, remoteSettings } =
@@ -517,6 +517,7 @@ viewCustomStyled config (SmartSelect model) =
             , isDisabled = settings.isDisabled
             , selectedOptions = []
             , clearIconAttributes = Nothing
+            , icon = settings.icon
             }
         , Alignment.view
             settings.theme

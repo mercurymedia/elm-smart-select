@@ -57,7 +57,7 @@ type alias Config msg a =
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , viewSelectedOptionFn : a -> Html.Html msg
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
 
 
@@ -107,7 +107,7 @@ init { selectionMsg, internalMsg, idPrefix } =
 
 {-| Events external to the smart select to which it is subscribed.
 -}
-subscriptions : RemoteSettings a -> SmartSelect msg a -> Sub msg
+subscriptions : RemoteSettings msg a -> SmartSelect msg a -> Sub msg
 subscriptions remoteSettings (SmartSelect model) =
     if model.isOpen then
         Sub.batch
@@ -223,7 +223,7 @@ debounceConfig { internalMsg, debounceDuration } =
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
 -}
-update : Msg a -> RemoteSettings a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+update : Msg a -> RemoteSettings msg a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
 update msg remoteSettings (SmartSelect model) =
     case msg of
         NoOp ->
@@ -359,7 +359,7 @@ showOptions :
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , idPrefix : Prefix
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> Html.Styled.Html msg
 showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, idPrefix, remoteSettings } =
@@ -406,7 +406,7 @@ viewRemoteData :
     , optionDescriptionFn : a -> String
     , spinner : Spinner.Model
     , idPrefix : Prefix
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> Html.Styled.Html msg
 viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, spinner, idPrefix, remoteSettings } =
@@ -494,7 +494,7 @@ view :
     { selected : List a
     , optionLabelFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> SmartSelect msg a
     -> Html msg
@@ -507,7 +507,7 @@ viewStyled :
     { selected : List a
     , optionLabelFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , remoteSettings : RemoteSettings a
+    , remoteSettings : RemoteSettings msg a
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
@@ -579,6 +579,7 @@ viewCustomStyled config (SmartSelect model) =
                     )
                     selected
             , clearIconAttributes = Just [ Events.stopPropagationOn "click" (Decode.succeed ( model.selectionMsg ( [], Clear ), True )) ]
+            , icon = settings.icon
             }
         , Alignment.view
             settings.theme
