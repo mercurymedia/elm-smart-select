@@ -2,7 +2,9 @@
   "private": true,
   "scripts": {
     "start": "parcel serve --no-cache examples/index.html",
-    "test": "cypress run",
+    "test:elm": "elm-test",
+    "test:format": "elm-format --validate src tests",
+    "test:cypress": "cypress run",
     "cypress:open": "cypress open"
   },
   "repository": {
