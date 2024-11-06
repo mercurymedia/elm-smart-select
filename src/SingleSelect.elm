@@ -384,9 +384,12 @@ viewCustomStyled config (SmartSelect model) =
             , icon = settings.icon
             }
         , Alignment.view
-            settings.theme
-            model.idPrefix
-            model.alignment
+            { theme = settings.theme
+            , scrollBehavior = settings.scrollBehavior
+            , idPrefix = model.idPrefix
+            , onClose = model.internalMsg <| Close
+            , alignment = model.alignment
+            }
             [ showOptions
                 { selectionMsg = model.selectionMsg
                 , selected = selected

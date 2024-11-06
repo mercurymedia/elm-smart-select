@@ -1,11 +1,11 @@
-module SmartSelect.Settings exposing (Settings, RemoteSettings, RemoteQueryAttrs, Theme, defaultRemoteSettings, defaultSettings, defaultTheme)
+module SmartSelect.Settings exposing (Settings, ScrollBehavior(..), RemoteSettings, RemoteQueryAttrs, Theme, defaultRemoteSettings, defaultSettings, defaultTheme)
 
 {-| The settings module for all smart select variants
 
 
 # Architecture
 
-@docs Settings, RemoteSettings, RemoteQueryAttrs, Theme, defaultRemoteSettings, defaultSettings, defaultTheme
+@docs Settings, ScrollBehavior, RemoteSettings, RemoteQueryAttrs, Theme, defaultRemoteSettings, defaultSettings, defaultTheme
 
 -}
 
@@ -27,7 +27,16 @@ type alias Settings msg =
     , noOptionsMsg : String
     , icon : Maybe (Html msg)
     , id : String
+    , scrollBehavior : ScrollBehavior
     }
+
+
+{-| The type representing the select's popover behaviour when scrolling in the background.
+-}
+type ScrollBehavior
+    = BlockScrolling
+    | CloseOnScroll
+    | KeepOpen
 
 
 {-| The type representing the select's remote settings (including the general settings) to be passed to all view & update functions of the remote variants
@@ -120,6 +129,7 @@ defaultSettings =
     , noOptionsMsg = "No options available"
     , icon = Nothing
     , id = "elm-smart-select"
+    , scrollBehavior = CloseOnScroll
     }
 
 
