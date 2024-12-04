@@ -37,7 +37,7 @@ import Html.Styled.Attributes as Attrs
 import Html.Styled.Events as Events
 import Json.Decode as Decode
 import SmartSelect.Id as Id
-import SmartSelect.Settings exposing (ScrollBehavior(..), Theme)
+import SmartSelect.Settings exposing (BackgroundScrollBehavior(..), Theme)
 import SmartSelect.ViewComponents exposing (classPrefix)
 import Task exposing (Task)
 import Task.Extra as TaskExtra
@@ -144,14 +144,14 @@ popoverWrapperStyles alignment =
             [ Css.flexDirection Css.column ]
 
 
-view : { theme : Theme, scrollBehavior : ScrollBehavior, idPrefix : Id.Prefix, onClose : msg, alignment : Maybe Alignment } -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
-view { theme, scrollBehavior, idPrefix, onClose, alignment } children =
+view : { theme : Theme, bgScrollBehavior : BackgroundScrollBehavior, idPrefix : Id.Prefix, onClose : msg, alignment : Maybe Alignment } -> List (Html.Styled.Html msg) -> Html.Styled.Html msg
+view { theme, bgScrollBehavior, idPrefix, onClose, alignment } children =
     let
         alignmentStyles =
             style alignment
 
         backdropAttrs =
-            case scrollBehavior of
+            case bgScrollBehavior of
                 BlockScrolling ->
                     [ Attrs.css [ Css.property "pointer-events" "all" ] ]
 

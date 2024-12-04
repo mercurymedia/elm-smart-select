@@ -385,7 +385,7 @@ viewCustomStyled config (SmartSelect model) =
             }
         , Alignment.view
             { theme = settings.theme
-            , scrollBehavior = settings.scrollBehavior
+            , bgScrollBehavior = settings.bgScrollBehavior
             , idPrefix = model.idPrefix
             , onClose = model.internalMsg <| Close
             , alignment = model.alignment
