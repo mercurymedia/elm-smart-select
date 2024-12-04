@@ -129,7 +129,7 @@ defaultSettings =
     , noOptionsMsg = "No options available"
     , icon = Nothing
     , id = "elm-smart-select"
-    , scrollBehavior = CloseOnScroll
+    , scrollBehavior = BlockScrolling
     }
 
 
