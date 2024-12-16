@@ -135,6 +135,22 @@ subscriptions model =
 
 Examples can be found in the [examples](https://github.com/mercurymedia/elm-smart-select/tree/master/examples) folder. To view the examples run `npm install` and `npm start`. Open your browser at [localhost:1234](http://localhost:1234).
 
+## Popover Positioning and Background Scroll Behaviour
+
+The Select's popover element is manually positioned, meaning the element has the style `position: fixed;` to avoid annoying overflow- or z-index-issues when deeply nested in the DOM. It's coordinates are calculated based on the trigger element's (the select's input field) position once the select is being clicked and the popover opens. The calculation takes the available screen size in each direction into account so that the popover element always opens in the direction with enough space.
+
+Unfortunately the manual positioning comes with a disadvantage that can't be resolved with CSS-only: if the select is being rendered as part of a scroll container, its popover won't automatically move and follow its trigger element. It will stick to the position that has been calculated at the time of its opening.
+This package offers a few solutions to avoid that behavior:
+
+- **The simple way:** the `Settings` record has a property `bgScrollBehavior` which can be used to define what happens with the popover when the user scrolls in the select's background - no matter if the select element is part of a scroll container or not. When the popover opens there is also an invisible backdrop element opening that can be configured to catch and deal with background scroll events. There are 3 options from the type `BackgroundScrollBehavior`:
+  
+  - `BlockScrolling`: when opened, the backdrop element prevents the user from scrolling in the background so all elements stay at the same position.
+  - `CloseOnScroll`: as soon as the user starts scrolling in the background, the popover closes and the scroll-container is being scrolled as usual.
+  - `KeepOpen`: see above - the popover element just sticks to its original position while its trigger element might scroll away.
+- **The manual approach:** when using `KeepOpen` there is one more option you can implement, even though it is a little more work to do: all the select variants have a `updatePosition` function. So you can listen to scroll events on your app's scroll container and once they're fired you can call the function to re-trigger the popover's position calculation. The popover should then follow its trigger element.
+
+
+
 ## CSS & Theming
 
 The CSS for the date picker is now defined in a built-in way using [elm-css](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/).

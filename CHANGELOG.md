@@ -1,5 +1,15 @@
 # Changelog
 
+## [7.0.0]
+
+**MAJOR CHANGE**
+- A new property has been added to the `Settings` record:
+  
+  `bgScrollBehaviour` - defines the behaviour of the Popover element when the user scrolls in the background. The options are based on a new type `BackgroundScrollBehavior` consisting of `BlockScrolling`, `CloseOnScroll` and `KeepOpen`
+
+- Check the Readme for more informations
+
+
 ## [6.0.0]
 
 **MAJOR CHANGE**
