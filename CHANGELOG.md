@@ -1,5 +1,9 @@
 # Changelog
 
+## [8.0.0]
+
+- Removed the `RemoteQueryAttrs` property from `RemoteSettings`. Query attributes are now passed directly to the update function, improving clarity and reducing the need to manage query parameters and request headers in views and subscriptions
+
 ## [7.0.0]
 
 **MAJOR CHANGE**

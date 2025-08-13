@@ -6,7 +6,7 @@ import Html.Events exposing (onSubmit)
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import MultiSelectRemote
-import SmartSelect.Settings exposing (defaultSettings, defaultRemoteSettings, RemoteSettings)
+import SmartSelect.Settings exposing (RemoteSettings, defaultRemoteSettings, defaultSettings)
 
 
 type alias Language =
@@ -34,14 +34,14 @@ update msg model =
         GotOptionSelected ( selectedOptions, sMsg ) ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelectRemote.update sMsg customRemoteSettings model.select
+                    MultiSelectRemote.update sMsg customRemoteSettings httpRemoteSearchAttrs model.select
             in
             ( { model | select = updatedSelect, selectedOptions = selectedOptions }, selectCmd )
 
         SelectUpdated sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    MultiSelectRemote.update sMsg customRemoteSettings model.select
+                    MultiSelectRemote.update sMsg customRemoteSettings httpRemoteSearchAttrs model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
@@ -108,9 +108,11 @@ view model =
         , div [ style "height" "100vh" ] []
         ]
 
-customRemoteSettings : RemoteSettings msg Language
-customRemoteSettings = 
-    defaultRemoteSettings httpRemoteSearchAttrs
+
+customRemoteSettings : RemoteSettings msg
+customRemoteSettings =
+    defaultRemoteSettings
+
 
 init : ( Model, Cmd Msg )
 init =

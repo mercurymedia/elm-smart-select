@@ -34,14 +34,14 @@ update msg model =
         GotOptionSelected ( selectedOption, sMsg ) ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelectRemote.update sMsg customRemoteSettings model.select
+                    SingleSelectRemote.update sMsg customRemoteSettings httpRemoteSearchAttrs model.select
             in
             ( { model | select = updatedSelect, selectedOption = Just selectedOption }, selectCmd )
 
         SelectUpdated sMsg ->
             let
                 ( updatedSelect, selectCmd ) =
-                    SingleSelectRemote.update sMsg customRemoteSettings model.select
+                    SingleSelectRemote.update sMsg customRemoteSettings httpRemoteSearchAttrs model.select
             in
             ( { model | select = updatedSelect }, selectCmd )
 
@@ -117,9 +117,9 @@ init =
     )
 
 
-customRemoteSettings : RemoteSettings msg Language
+customRemoteSettings : RemoteSettings msg
 customRemoteSettings =
-    defaultRemoteSettings httpRemoteSearchAttrs
+    defaultRemoteSettings
 
 
 subscriptions : Model -> Sub Msg

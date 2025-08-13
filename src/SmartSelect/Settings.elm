@@ -41,14 +41,13 @@ type BackgroundScrollBehavior
 
 {-| The type representing the select's remote settings (including the general settings) to be passed to all view & update functions of the remote variants
 -}
-type alias RemoteSettings msg a =
+type alias RemoteSettings msg =
     { settings : Settings msg
     , spinnerColor : Color.Color
     , characterThresholdPrompt : Int -> String
     , characterSearchThreshold : Int
     , debounceDuration : Float
     , queryErrorMsg : String
-    , queryAttrs : RemoteQueryAttrs a
     }
 
 
@@ -135,19 +134,15 @@ defaultSettings =
 
 {-| A record of default settings for the remote select variants. Extend this if
 you want to further customize.
-
-Requires the `RemoteQueryAttrs`.
-
 -}
-defaultRemoteSettings : RemoteQueryAttrs a -> RemoteSettings msg a
-defaultRemoteSettings queryAttrs =
+defaultRemoteSettings : RemoteSettings msg
+defaultRemoteSettings =
     { settings = defaultSettings
     , spinnerColor = Color.rgb255 57 179 181
     , characterThresholdPrompt = \_ -> "Enter at least 2 characters to search..."
     , characterSearchThreshold = 2
     , debounceDuration = 1000
     , queryErrorMsg = "Error"
-    , queryAttrs = queryAttrs
     }
 
 
