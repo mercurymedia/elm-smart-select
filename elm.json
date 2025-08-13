@@ -3,7 +3,7 @@
     "name": "mercurymedia/elm-smart-select",
     "summary": "an advanced select component",
     "license": "MIT",
-    "version": "7.0.0",
+    "version": "8.0.0",
     "exposed-modules": [
         "MultiSelect",
         "MultiSelectRemote",

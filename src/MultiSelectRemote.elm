@@ -23,7 +23,7 @@ import RemoteData exposing (RemoteData(..))
 import SmartSelect.Alignment as Alignment exposing (Alignment)
 import SmartSelect.Errors as Errors
 import SmartSelect.Id as Id exposing (Prefix(..))
-import SmartSelect.Settings exposing (RemoteSettings)
+import SmartSelect.Settings exposing (RemoteQueryAttrs, RemoteSettings)
 import SmartSelect.Utilities as Utilities exposing (KeyCode(..))
 import SmartSelect.ViewComponents exposing (viewEmptyOptionsListItem, viewError, viewOptionsList, viewOptionsListItem, viewSearchPrompt, viewSearchPromptContainer, viewSpinner, viewTextField, viewTextFieldContainer)
 import Spinner
@@ -57,7 +57,7 @@ type alias Config msg a =
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , viewSelectedOptionFn : a -> Html.Html msg
-    , remoteSettings : RemoteSettings msg a
+    , remoteSettings : RemoteSettings msg
     }
 
 
@@ -107,7 +107,7 @@ init { selectionMsg, internalMsg, idPrefix } =
 
 {-| Events external to the smart select to which it is subscribed.
 -}
-subscriptions : RemoteSettings msg a -> SmartSelect msg a -> Sub msg
+subscriptions : RemoteSettings msg -> SmartSelect msg a -> Sub msg
 subscriptions remoteSettings (SmartSelect model) =
     if model.isOpen then
         Sub.batch
@@ -223,8 +223,8 @@ debounceConfig { internalMsg, debounceDuration } =
 
 {-| Update the provided smart select and receive the updated select instance and a cmd to run.
 -}
-update : Msg a -> RemoteSettings msg a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
-update msg remoteSettings (SmartSelect model) =
+update : Msg a -> RemoteSettings msg -> RemoteQueryAttrs a -> SmartSelect msg a -> ( SmartSelect msg a, Cmd msg )
+update msg remoteSettings queryAttrs (SmartSelect model) =
     case msg of
         NoOp ->
             ( SmartSelect model, Cmd.none )
@@ -256,7 +256,7 @@ update msg remoteSettings (SmartSelect model) =
                 ( debounce, cmd ) =
                     Debounce.update
                         (debounceConfig { internalMsg = model.internalMsg, debounceDuration = remoteSettings.debounceDuration })
-                        (Debounce.takeLast (Utilities.search { remoteQueryAttrs = remoteSettings.queryAttrs, handleResponse = \remoteData -> model.internalMsg <| GotRemoteData remoteData }))
+                        (Debounce.takeLast (Utilities.search { remoteQueryAttrs = queryAttrs, handleResponse = \remoteData -> model.internalMsg <| GotRemoteData remoteData }))
                         msg_
                         model.debounce
             in
@@ -309,7 +309,7 @@ update msg remoteSettings (SmartSelect model) =
             let
                 cmd =
                     if remoteSettings.characterSearchThreshold == 0 then
-                        Utilities.search { remoteQueryAttrs = remoteSettings.queryAttrs, handleResponse = \remoteData -> model.internalMsg <| GotRemoteData remoteData } ""
+                        Utilities.search { remoteQueryAttrs = queryAttrs, handleResponse = \remoteData -> model.internalMsg <| GotRemoteData remoteData } ""
 
                     else
                         Cmd.none
@@ -359,7 +359,7 @@ showOptions :
     , optionLabelFn : a -> String
     , optionDescriptionFn : a -> String
     , idPrefix : Prefix
-    , remoteSettings : RemoteSettings msg a
+    , remoteSettings : RemoteSettings msg
     }
     -> Html.Styled.Html msg
 showOptions { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, options, optionLabelFn, optionDescriptionFn, idPrefix, remoteSettings } =
@@ -406,7 +406,7 @@ viewRemoteData :
     , optionDescriptionFn : a -> String
     , spinner : Spinner.Model
     , idPrefix : Prefix
-    , remoteSettings : RemoteSettings msg a
+    , remoteSettings : RemoteSettings msg
     }
     -> Html.Styled.Html msg
 viewRemoteData { selectionMsg, internalMsg, focusedOptionIndex, searchText, selectedOptions, remoteData, optionLabelFn, optionDescriptionFn, spinner, idPrefix, remoteSettings } =
@@ -494,7 +494,7 @@ view :
     { selected : List a
     , optionLabelFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , remoteSettings : RemoteSettings msg a
+    , remoteSettings : RemoteSettings msg
     }
     -> SmartSelect msg a
     -> Html msg
@@ -507,7 +507,7 @@ viewStyled :
     { selected : List a
     , optionLabelFn : a -> String
     , viewSelectedOptionFn : a -> Html msg
-    , remoteSettings : RemoteSettings msg a
+    , remoteSettings : RemoteSettings msg
     }
     -> SmartSelect msg a
     -> Html.Styled.Html msg
