@@ -69,7 +69,7 @@ type Msg a
     | UpKeyPressed Int
     | DownKeyPressed Int
     | SetSearchText String
-    | WindowResized ( Int, Int )
+    | OnViewChanged
     | GotAlignment (Result Dom.Error Alignment)
     | Open
     | Close
@@ -101,8 +101,9 @@ subscriptions : SmartSelect msg a -> Sub msg
 subscriptions (SmartSelect model) =
     if model.isOpen then
         Sub.batch
-            [ Browser.Events.onResize (\h w -> model.internalMsg <| WindowResized ( h, w ))
+            [ Browser.Events.onResize (\_ _ -> model.internalMsg <| OnViewChanged)
             , Browser.Events.onMouseDown (Utilities.clickedOutsideSelect (Id.select model.idPrefix) (model.internalMsg Close))
+            , Browser.Events.onAnimationFrame (\_ -> model.internalMsg <| OnViewChanged)
             ]
 
     else
@@ -174,15 +175,15 @@ update msg (SmartSelect model) =
         SetSearchText text ->
             ( SmartSelect { model | searchText = text, focusedOptionIndex = 0 }, Cmd.none )
 
-        WindowResized _ ->
+        OnViewChanged ->
             ( SmartSelect model, Alignment.getAlignment model.idPrefix (\alignment -> model.internalMsg (GotAlignment alignment)) )
 
         GotAlignment result ->
-            case result of
-                Ok alignment ->
+            case ( result, model.isOpen ) of
+                ( Ok alignment, True ) ->
                     ( SmartSelect { model | alignment = Just alignment }, Cmd.none )
 
-                Err _ ->
+                ( _, _ ) ->
                     ( SmartSelect model, Cmd.none )
 
         Open ->

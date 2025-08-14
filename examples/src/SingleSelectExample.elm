@@ -27,7 +27,6 @@ type Msg
     = HandleSelectUpdate (SingleSelect.Msg Product)
     | HandleSelection ( Product, SingleSelect.Msg Product )
     | HandleFormSubmission
-    | OnViewChange
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -50,12 +49,6 @@ update msg model =
         HandleFormSubmission ->
             ( { model | wasFormSubmitted = True }, Cmd.none )
 
-        OnViewChange ->
-            let
-                ( updatedSelect, selectCmd ) =
-                    SingleSelect.updatePosition model.select
-            in
-            ( { model | select = updatedSelect }, selectCmd )
 
 
 view : Model -> Html Msg
@@ -65,7 +58,6 @@ view model =
         , style "height" "100vh"
         , style "padding" "3rem"
         , style "overflow" "auto"
-        , Html.Events.on "scroll" (Decode.succeed OnViewChange)
         ]
         [ h1 [] [ text "SingleSelect Example" ]
         , div
